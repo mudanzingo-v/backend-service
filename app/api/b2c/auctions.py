@@ -6,12 +6,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
 from app.core.exceptions import NotFoundError
-from app.models import Auction
 from app.schemas import (
     AuctionRead,
     AuctionSelectBody,
-    Message,
-    QuotationRead,
 )
 from app.services import auction as auction_svc
 from app.services import quotation as quotation_svc
@@ -109,6 +106,7 @@ async def get_preference(
 ) -> dict:
     """Returns the most recent preference for this auction."""
     from sqlalchemy import select
+
     from app.models import Preference
 
     stmt = (

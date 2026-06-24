@@ -13,8 +13,6 @@ The front reads these headers to render pagination controls.
 """
 from __future__ import annotations
 
-from typing import Tuple
-
 from fastapi import Response
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -25,7 +23,7 @@ async def paginate(
     stmt,
     limit: int,
     offset: int,
-) -> Tuple[list, int]:
+) -> tuple[list, int]:
     """
     Execute a `SELECT` with `limit`/`offset` and return (items, total).
 

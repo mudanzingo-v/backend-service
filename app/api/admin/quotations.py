@@ -10,7 +10,6 @@ This is the "admin selects provider" workflow:
   4. The provider sees the assignment in their app and can accept, counter
      or decline.
 """
-from typing import Optional
 
 from fastapi import APIRouter, Depends, Query, Response, status
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -27,8 +26,6 @@ from app.schemas import (
     QuotationUpdate,
 )
 from app.services import auction as auction_svc
-from app.services.quotation import ST_QUOTED
-
 
 router = APIRouter(prefix="/quotation", tags=["admin:quotations"])
 
@@ -39,15 +36,16 @@ router = APIRouter(prefix="/quotation", tags=["admin:quotations"])
     summary="List quotations (admin)",
 )
 async def list_quotations(
-    state: Optional[str] = Query(None, description="Filter by state"),
-    q: Optional[str] = Query(None, description="Search by client name, email, phone, service name, or postal code"),
+    state: str | None = Query(None, description="Filter by state"),
+    q: str | None = Query(None, description="Search by client name, email, phone, service name, or postal code"),
     limit: int = Query(100, ge=1, le=500),
     offset: int = Query(0, ge=0),
     response: Response = None,
     db: AsyncSession = Depends(get_db),
     _admin: object = Depends(current_admin),
 ) -> list[QuotationRead]:
-    from sqlalchemy import select, or_
+    from sqlalchemy import or_, select
+
     from app.models import Quotation
     stmt = select(Quotation).where(Quotation.client_email != "synthetic@orphan.local").order_by(Quotation.created_at.desc())
     if state is not None:

@@ -38,7 +38,6 @@ from app.schemas import (
 )
 from app.services import mercadopago, pricing
 
-
 # State constants
 STATE_PENDING = "PENDING"
 STATE_SELECTED = "SELECTED"

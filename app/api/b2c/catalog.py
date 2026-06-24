@@ -6,7 +6,6 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
-from app.core.exceptions import NotFoundError
 from app.models import InventoryItem, Product, Service
 from app.schemas import (
     InventoryItemRead,

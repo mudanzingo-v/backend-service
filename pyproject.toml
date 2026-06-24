@@ -48,7 +48,11 @@ target-version = "py311"
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "B", "UP", "N", "C4", "SIM"]
-ignore = ["E501"]
+ignore = [
+    "E501",  # Line too long — handled by formatter + manual review
+    "B008",  # FastAPI's `Depends()` in default arguments is THE standard FastAPI pattern (used in 69 places)
+    "B009",  # `getattr(x, "literal_string")` — sometimes used intentionally for dynamic attribute lookup
+]
 
 [tool.mypy]
 python_version = "3.11"

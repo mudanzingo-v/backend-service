@@ -11,12 +11,10 @@ from app.core.exceptions import NotFoundError
 from app.core.pagination import paginate, set_pagination_headers
 from app.models import Auction, Payment
 from app.schemas import (
-    Message,
     PaymentCreateDeposit,
     PaymentCreateMP,
     PaymentRead,
 )
-
 
 quotation_payments_router = APIRouter(
     prefix="/quotation/{quotation_id}/payment", tags=["admin:payments"]

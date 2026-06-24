@@ -138,9 +138,7 @@ async def test_request_context_middleware_sets_request_id_in_handler(
     `setup_logging()` interact poorly; the contextvar check is a
     robust integration signal.
     """
-    response = await client.get(
-        "/debug/request-id", headers={"x-request-id": "my-test-rid-001"}
-    )
+    response = await client.get("/debug/request-id", headers={"x-request-id": "my-test-rid-001"})
     assert response.status_code == 200
     assert response.headers.get("x-request-id") == "my-test-rid-001"
     assert response.json() == {"request_id": "my-test-rid-001"}
@@ -158,9 +156,7 @@ async def test_middleware_generates_request_id_when_header_missing(
     assert rid is not None and len(rid) >= 8
 
     body = response.json()
-    assert body["request_id"] == rid, (
-        "contextvar request_id must match the response header"
-    )
+    assert body["request_id"] == rid, "contextvar request_id must match the response header"
 
 
 def test_new_request_id_is_short_hex() -> None:

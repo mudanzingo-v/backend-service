@@ -1,7 +1,6 @@
 """
 Admin endpoints: Auction management.
 """
-from typing import Optional
 
 from fastapi import APIRouter, Depends, Query, Response
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -49,7 +48,7 @@ top_auction_router = APIRouter(prefix="/auction", tags=["admin:auctions"])
     ),
 )
 async def list_auctions_admin(
-    quotation_id: Optional[str] = Query(
+    quotation_id: str | None = Query(
         None, description="Filter by quotation id"
     ),
     limit: int = Query(100, ge=1, le=500),

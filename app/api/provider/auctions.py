@@ -7,7 +7,6 @@ The provider can:
   - Accept / counter-offer an admin-assigned auction (PUT)
   - Decline an admin-assigned auction
 """
-from typing import Optional
 
 from fastapi import APIRouter, Depends, Query, Response
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -18,7 +17,6 @@ from app.core.pagination import set_pagination_headers
 from app.schemas import (
     AuctionProviderUpdate,
     AuctionRead,
-    Message,
 )
 from app.services import auction as auction_svc
 
@@ -31,7 +29,7 @@ router = APIRouter(prefix="/auction", tags=["provider:auctions"])
     summary="List my auctions (provider)",
 )
 async def list_my_auctions(
-    state: Optional[str] = Query(None, description="Filter by state (PENDING, SELECTED, REJECTED, DECLINED)"),
+    state: str | None = Query(None, description="Filter by state (PENDING, SELECTED, REJECTED, DECLINED)"),
     limit: int = Query(100, ge=1, le=500),
     offset: int = Query(0, ge=0),
     response: Response = None,
@@ -103,14 +101,8 @@ async def decline_my_auction(
     db: AsyncSession = Depends(get_db),
     user: AuthUser = Depends(current_provider),
 ) -> AuctionRead:
-    from fastapi import Body as BodyParam
     # Accept an optional note in the body
-    note: Optional[str] = None
-    try:
-        # The body is optional
-        pass
-    except Exception:
-        pass
+    note: str | None = None
     auction = await auction_svc.provider_decline_auction(
         db, auction_id, user.sub, note=note
     )

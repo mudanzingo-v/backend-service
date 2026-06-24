@@ -21,7 +21,6 @@ from datetime import datetime
 from decimal import Decimal
 
 from sqlalchemy import (
-    JSON,
     Boolean,
     DateTime,
     ForeignKey,
@@ -109,7 +108,7 @@ class Quotation(Base):
         DateTime, default=_now, onupdate=_now, nullable=False
     )
 
-    auctions: Mapped[list["Auction"]] = relationship(
+    auctions: Mapped[list[Auction]] = relationship(
         back_populates="quotation", cascade="all, delete-orphan"
     )
 
@@ -185,8 +184,8 @@ class Auction(Base):
         DateTime, default=_now, onupdate=_now, nullable=False
     )
 
-    quotation: Mapped["Quotation"] = relationship(back_populates="auctions")
-    preferences: Mapped[list["Preference"]] = relationship(
+    quotation: Mapped[Quotation] = relationship(back_populates="auctions")
+    preferences: Mapped[list[Preference]] = relationship(
         back_populates="auction", cascade="all, delete-orphan"
     )
 
@@ -226,7 +225,7 @@ class Preference(Base):
 
     created_at: Mapped[datetime] = mapped_column(DateTime, default=_now, nullable=False)
 
-    auction: Mapped["Auction"] = relationship(back_populates="preferences")
+    auction: Mapped[Auction] = relationship(back_populates="preferences")
 
     def __repr__(self) -> str:
         return f"<Preference {self.id} mp_id={self.mp_id}>"
@@ -339,7 +338,7 @@ class Provider(Base):
         DateTime, default=_now, onupdate=_now, nullable=False
     )
 
-    trucks: Mapped[list["Truck"]] = relationship(
+    trucks: Mapped[list[Truck]] = relationship(
         back_populates="provider", cascade="all, delete-orphan"
     )
 
@@ -371,7 +370,7 @@ class Truck(Base):
         DateTime, default=_now, onupdate=_now, nullable=False
     )
 
-    provider: Mapped["Provider"] = relationship(back_populates="trucks")
+    provider: Mapped[Provider] = relationship(back_populates="trucks")
 
 
 # =============================================================================

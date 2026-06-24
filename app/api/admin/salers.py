@@ -12,7 +12,6 @@ from app.core.pagination import paginate, set_pagination_headers
 from app.models import Saler
 from app.schemas import Message, SalerCreate, SalerRead, SalerUpdate
 
-
 router = APIRouter(prefix="/saler", tags=["admin:salers"])
 
 

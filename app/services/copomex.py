@@ -11,9 +11,8 @@ from typing import Any
 import httpx
 
 from app.config import settings
-from app.core.logging import get_logger
 from app.core.exceptions import ValidationError
-
+from app.core.logging import get_logger
 
 log = get_logger(__name__)
 

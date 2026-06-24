@@ -11,14 +11,12 @@ from app.core.exceptions import NotFoundError
 from app.core.pagination import paginate, set_pagination_headers
 from app.models import Provider, Truck
 from app.schemas import (
-    Message,
     ProviderRead,
     ProviderUpdate,
     TruckCreate,
     TruckRead,
     TruckUpdate,
 )
-
 
 # ---- Providers ----
 providers_router = APIRouter(prefix="/provider", tags=["admin:providers"])

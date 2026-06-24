@@ -13,7 +13,7 @@ import httpx
 
 from app.config import settings
 from app.core.logging import get_logger
-from app.models import Quotation, Auction
+from app.models import Auction, Quotation
 
 log = get_logger(__name__)
 

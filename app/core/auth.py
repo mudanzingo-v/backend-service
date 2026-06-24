@@ -21,16 +21,16 @@ from dataclasses import dataclass, field
 from typing import Any, Literal
 
 import httpx
-from fastapi import Depends, Header, status
+from fastapi import Depends
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from jose import ExpiredSignatureError, JWTError, jwt
 from jose.exceptions import JWTClaimsError
 
 from app.config import settings
+from app.core.exceptions import UnauthorizedError
 from app.core.logging import get_logger
 
 log = get_logger(__name__)
-from app.core.exceptions import UnauthorizedError
 
 
 # ---- JWKS cache (in-memory, refresh every 10 min) ----

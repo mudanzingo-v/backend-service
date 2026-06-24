@@ -102,6 +102,7 @@ async def debug_request_id() -> dict:
     RequestContextMiddleware contextvar. Used by tests to verify
     that the middleware is properly setting the context."""
     from app.core.logging import request_id_var
+
     return {"request_id": request_id_var.get()}
 
 
