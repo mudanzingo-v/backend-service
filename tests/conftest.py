@@ -210,6 +210,8 @@ async def client(app: FastAPI) -> AsyncGenerator[AsyncClient, None]:
 @pytest.fixture
 def auth_header() -> Callable[[str], dict[str, str]]:
     """Factory: build an `Authorization: Bearer <token>` header dict."""
+
     def _factory(token: str) -> dict[str, str]:
         return {"Authorization": f"Bearer {token}"}
+
     return _factory

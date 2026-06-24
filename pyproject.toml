@@ -5,34 +5,34 @@ description = "Mobbit B2B/B2C marketplace backend (FastAPI port of the Rust Lamb
 readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
-    # Core
-    "fastapi>=0.115.0",
-    "uvicorn[standard]>=0.32.0",
-    "pydantic>=2.9.0",
-    "pydantic-settings>=2.6.0",
-    # Database
-    "sqlalchemy[asyncio]>=2.0.36",
-    "asyncpg>=0.30.0",
-    "alembic>=1.14.0",
-    # Auth (Cognito JWT)
-    "python-jose[cryptography]>=3.3.0",
-    "httpx>=0.27.0",
-    # HTTP client (MercadoPago, Copomex)
-    "httpx>=0.27.0",
-    # Misc
-    "python-multipart>=0.0.12",
-    "email-validator>=2.2.0",
-    "orjson>=3.10.0",
+  # Core
+  "fastapi>=0.115.0",
+  "uvicorn[standard]>=0.32.0",
+  "pydantic>=2.9.0",
+  "pydantic-settings>=2.6.0",
+  # Database
+  "sqlalchemy[asyncio]>=2.0.36",
+  "asyncpg>=0.30.0",
+  "alembic>=1.14.0",
+  # Auth (Cognito JWT)
+  "python-jose[cryptography]>=3.3.0",
+  "httpx>=0.27.0",
+  # HTTP client (MercadoPago, Copomex)
+  "httpx>=0.27.0",
+  # Misc
+  "python-multipart>=0.0.12",
+  "email-validator>=2.2.0",
+  "orjson>=3.10.0",
 ]
 
 [project.optional-dependencies]
 dev = [
-    "pytest>=8.3.0",
-    "pytest-asyncio>=0.24.0",
-    "pytest-cov>=6.0.0",
-    "ruff>=0.7.0",
-    "mypy>=1.13.0",
-    "types-python-jose>=3.3.4.20240106",
+  "pytest>=8.3.0",
+  "pytest-asyncio>=0.24.0",
+  "pytest-cov>=6.0.0",
+  "ruff>=0.7.0",
+  "mypy>=1.13.0",
+  "types-python-jose>=3.3.4.20240106",
 ]
 
 [build-system]
@@ -57,9 +57,11 @@ ignore_missing_imports = true
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "session"
+asyncio_default_test_loop_scope = "session"
 testpaths = ["tests"]
 addopts = "-v --tb=short --strict-markers --cov=app --cov-report=term-missing"
 markers = [
-    "unit: pure unit tests (no DB, no HTTP)",
-    "integration: tests that hit the FastAPI app or the test DB",
+  "unit: pure unit tests (no DB, no HTTP)",
+  "integration: tests that hit the FastAPI app or the test DB",
 ]
