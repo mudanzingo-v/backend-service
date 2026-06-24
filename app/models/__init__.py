@@ -185,7 +185,7 @@ class Auction(Base):
     )
 
     quotation: Mapped[Quotation] = relationship(back_populates="auctions")
-    preferences: Mapped[list[Preference]] = relationship(
+    checkout_sessions: Mapped[list[CheckoutSession]] = relationship(
         back_populates="auction", cascade="all, delete-orphan"
     )
 
@@ -194,16 +194,33 @@ class Auction(Base):
 
 
 # =============================================================================
-# Preference (MercadoPago payment preference)
+# CheckoutSession (Stripe payment session)
 # =============================================================================
-class Preference(Base):
+class CheckoutSession(Base):
     """
-    A MercadoPago checkout preference created when the client selects an auction.
+    A Stripe Checkout Session created when the client selects an auction.
 
-    Single-table equivalent: `pk = AUCTION#<provider_id>`, `sk = PREFERENCE`.
+    Mirrors Stripe's `checkout.Session` resource shape. The `id` column
+    is the local primary key (UUID4); `stripe_session_id` is Stripe's
+    identifier (`cs_test_...` in dev, `cs_live_...` in prod) and is
+    globally UNIQUE so duplicate webhook deliveries on retries can be
+    caught at the DB layer.
+
+    Fields:
+    - `amount_total` is **integer cents** per Stripe convention.
+    - `currency` defaults to `'mxn'` (the only currency we support now;
+      future multi-currency changes add a migration).
+    - `last_event_id` is populated by the Stripe webhook (PR3) for
+      idempotency; it stays NULL until the first webhook fires.
+    - `status` and `payment_status` mirror Stripe's enums but are stored
+      as VARCHAR to match the existing `Auction.state` / `Payment.state`
+      pattern (no Postgres ENUMs).
+
+    Single-table equivalent (original DDB): `pk = AUCTION#<provider_id>`,
+    `sk = CHECKOUT_SESSION`.
     """
 
-    __tablename__ = "preferences"
+    __tablename__ = "checkout_sessions"
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=_uuid)
 
@@ -211,24 +228,32 @@ class Preference(Base):
         String(36), ForeignKey("auctions.id", ondelete="CASCADE"), index=True
     )
 
-    # MP response fields
-    mp_id: Mapped[str | None] = mapped_column(String(128), nullable=True, index=True)
-    init_point: Mapped[str | None] = mapped_column(Text, nullable=True)
-    sandbox_init_point: Mapped[str | None] = mapped_column(Text, nullable=True)
-    date_created: Mapped[str | None] = mapped_column(String(64), nullable=True)
-    client_id: Mapped[str | None] = mapped_column(String(64), nullable=True)
-    collector_id: Mapped[str | None] = mapped_column(String(64), nullable=True)
-    operation_type: Mapped[str | None] = mapped_column(String(32), nullable=True)
-    items: Mapped[str | None] = mapped_column(Text, nullable=True)
-    payer: Mapped[str | None] = mapped_column(Text, nullable=True)
-    shipment: Mapped[str | None] = mapped_column(Text, nullable=True)
+    # Stripe identifiers
+    stripe_session_id: Mapped[str | None] = mapped_column(
+        String(128), nullable=True, unique=True
+    )
+    url: Mapped[str | None] = mapped_column(Text, nullable=True)
+
+    # Stripe status enums (kept as VARCHAR — no Postgres ENUMs)
+    status: Mapped[str | None] = mapped_column(String(32), nullable=True)
+    # open | complete | expired
+    payment_status: Mapped[str | None] = mapped_column(String(32), nullable=True)
+    # paid | unpaid | no_payment_required
+
+    # Money (cents per Stripe convention)
+    amount_total: Mapped[int | None] = mapped_column(nullable=True)
+    currency: Mapped[str] = mapped_column(String(8), nullable=False, default="mxn")
+
+    # Idempotency: written by the webhook (PR3) so duplicate event
+    # deliveries can be skipped at the application layer.
+    last_event_id: Mapped[str | None] = mapped_column(String(128), nullable=True)
 
     created_at: Mapped[datetime] = mapped_column(DateTime, default=_now, nullable=False)
 
-    auction: Mapped[Auction] = relationship(back_populates="preferences")
+    auction: Mapped[Auction] = relationship(back_populates="checkout_sessions")
 
     def __repr__(self) -> str:
-        return f"<Preference {self.id} mp_id={self.mp_id}>"
+        return f"<CheckoutSession {self.id} stripe_session_id={self.stripe_session_id}>"
 
 
 # =============================================================================
@@ -413,18 +438,21 @@ class Payment(Base):
     )
 
     type: Mapped[str] = mapped_column(String(32), index=True)
-    # MERCADOPAGO | DEPOSIT
+    # STRIPE | DEPOSIT
     state: Mapped[str] = mapped_column(String(32), default="PENDING", index=True)
     # PENDING | APPROVED | REJECTED | REFUNDED
 
     amount: Mapped[Decimal | None] = mapped_column(Numeric(12, 2), nullable=True)
     currency: Mapped[str] = mapped_column(String(8), default="MXN")
 
-    # MP-specific
-    mp_payment_id: Mapped[str | None] = mapped_column(String(128), nullable=True, index=True)
-    mp_preference_id: Mapped[str | None] = mapped_column(String(128), nullable=True)
-    mp_status: Mapped[str | None] = mapped_column(String(64), nullable=True)
-    mp_status_detail: Mapped[str | None] = mapped_column(String(128), nullable=True)
+    # Stripe-specific
+    stripe_payment_intent_id: Mapped[str | None] = mapped_column(
+        String(128), nullable=True, index=True
+    )
+    stripe_checkout_session_id: Mapped[str | None] = mapped_column(
+        String(128), nullable=True
+    )
+    stripe_payment_status: Mapped[str | None] = mapped_column(String(64), nullable=True)
     raw_payload: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
 
     created_at: Mapped[datetime] = mapped_column(DateTime, default=_now, nullable=False)
@@ -439,7 +467,7 @@ class Payment(Base):
 __all__ = [
     "Quotation",
     "Auction",
-    "Preference",
+    "CheckoutSession",
     "Product",
     "Service",
     "InventoryCategory",

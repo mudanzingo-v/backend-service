@@ -27,8 +27,9 @@ from typing import Any
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.config import settings
 from app.core.exceptions import ConflictError, ForbiddenError, NotFoundError, ValidationError
-from app.models import Auction, Payment, Preference, Quotation
+from app.models import Auction, CheckoutSession, Payment, Quotation
 from app.schemas import (
     AuctionAdminAssign,
     AuctionCreate,
@@ -36,7 +37,7 @@ from app.schemas import (
     AuctionSelectBody,
     AuctionUpdate,
 )
-from app.services import mercadopago, pricing
+from app.services import pricing, stripe
 
 # State constants
 STATE_PENDING = "PENDING"
@@ -375,7 +376,7 @@ async def select_auction(
 ) -> dict[str, Any]:
     """
     B2C client picks one auction. The chosen auction goes to `SELECTED`,
-    the rest to `REJECTED`. Then we create a MercadoPago preference.
+    the rest to `REJECTED`. Then we create a Stripe Checkout Session.
     """
     quotation = await db.get(Quotation, quotation_id)
     if quotation is None:
@@ -408,54 +409,68 @@ async def select_auction(
         selected.cash_on_delivery_provider = breakdown.cash_on_delivery_provider
         selected.cash_on_delivery_mobbit = breakdown.cash_on_delivery_mobbit
 
-    mp_response = await mercadopago.create_preference(
-        quotation, selected, cash_on_delivery=cash_on_delivery
+    # Stripe Checkout Session — amount in cents per Stripe convention.
+    # We pass the auction's `total` (a Decimal) converted to int cents
+    # so the Stripe API receives a clean integer (no float rounding).
+    amount_cents = int(
+        (Decimal(selected.total) * 100).quantize(Decimal("1"))
+    ) if not cash_on_delivery else int(
+        (
+            Decimal(selected.cash_on_delivery_mobbit or 0)
+            + Decimal(selected.cash_on_delivery_provider or 0)
+        )
+        * 100
     )
 
-    pref = Preference(
+    checkout_session = await stripe.create_checkout_session(
         auction_id=selected.id,
-        mp_id=str(mp_response.get("id")) if mp_response.get("id") else None,
-        init_point=mp_response.get("init_point"),
-        sandbox_init_point=mp_response.get("sandbox_init_point"),
-        date_created=mp_response.get("date_created"),
-        client_id=str(mp_response.get("client_id")) if mp_response.get("client_id") else None,
-        collector_id=str(mp_response.get("collector_id")) if mp_response.get("collector_id") else None,
-        operation_type=mp_response.get("operation_type"),
-        items=str(mp_response.get("items")) if mp_response.get("items") else None,
-        payer=str(mp_response.get("payer")) if mp_response.get("payer") else None,
-        shipment=str(mp_response.get("shipments")) if mp_response.get("shipments") else None,
+        provider_id=selected.provider_id,
+        amount_cents=amount_cents,
+        currency="mxn",
+        success_url=f"{settings.b2c_frontend_url}/payment/success?session_id={{CHECKOUT_SESSION_ID}}",
+        cancel_url=f"{settings.b2c_frontend_url}/payment/cancel?session_id={{CHECKOUT_SESSION_ID}}",
+        metadata={
+            "auction_id": selected.id,
+            "quotation_id": quotation.id,
+        },
     )
-    db.add(pref)
+
+    session = CheckoutSession(
+        auction_id=selected.id,
+        stripe_session_id=checkout_session.get("id"),
+        url=checkout_session.get("url"),
+        status=checkout_session.get("status"),
+        payment_status=checkout_session.get("payment_status"),
+        amount_total=checkout_session.get("amount_total"),
+        currency=checkout_session.get("currency", "mxn"),
+    )
+    db.add(session)
 
     payment = Payment(
         quotation_id=quotation.id,
         auction_id=selected.id,
-        type="MERCADOPAGO",
+        type="STRIPE",
         state=STATE_PENDING,
         amount=Decimal(selected.total) if not cash_on_delivery else (
             Decimal(selected.cash_on_delivery_mobbit or 0)
             + Decimal(selected.cash_on_delivery_provider or 0)
         ),
         currency="MXN",
-        mp_preference_id=pref.mp_id,
+        stripe_checkout_session_id=session.stripe_session_id,
     )
     db.add(payment)
 
     await db.commit()
-    await db.refresh(pref)
+    await db.refresh(session)
     await db.refresh(payment)
 
     return {
-        "preference_id": pref.id,
-        "mp_id": pref.mp_id,
-        "init_point": pref.init_point,
-        "sandbox_init_point": pref.sandbox_init_point,
-        "date_created": pref.date_created,
-        "client_id": pref.client_id,
-        "collector_id": pref.collector_id,
-        "operation_type": pref.operation_type,
-        "items": pref.items,
-        "payer": pref.payer,
-        "shipment": pref.shipment,
+        "session_id": session.id,
+        "stripe_session_id": session.stripe_session_id,
+        "url": session.url,
+        "status": session.status,
+        "payment_status": session.payment_status,
+        "amount_total": session.amount_total,
+        "currency": session.currency,
         "payment_id": payment.id,
     }

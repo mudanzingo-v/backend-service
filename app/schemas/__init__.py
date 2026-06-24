@@ -14,7 +14,7 @@ This `__init__.py` re-exports everything so existing imports
 """
 from __future__ import annotations
 
-# Auction + Preference
+# Auction + CheckoutSession
 from app.schemas.auction import (
     AuctionAdminAssign,
     AuctionCreate,
@@ -23,7 +23,7 @@ from app.schemas.auction import (
     AuctionRead,
     AuctionSelectBody,
     AuctionUpdate,
-    PreferenceRead,
+    CheckoutSessionRead,
 )
 
 # Catalog
@@ -48,7 +48,8 @@ from app.schemas.common import Message
 from app.schemas.payment import (
     LocationRead,
     PaymentCreateDeposit,
-    PaymentCreateMP,
+    PaymentCreateMP,  # backward-compat alias for PaymentCreateStripe (PR2)
+    PaymentCreateStripe,
     PaymentRead,
 )
 
@@ -75,6 +76,12 @@ from app.schemas.saler import SalerCreate, SalerRead, SalerUpdate
 # Stats
 from app.schemas.stats import Stats
 
+# Stripe
+from app.schemas.stripe import (
+    StripeCheckoutSessionCreate,
+    StripeWebhookEvent,
+)
+
 __all__ = [
     "Message",
     # Quotation
@@ -82,8 +89,8 @@ __all__ = [
     # Auction
     "AuctionItemObject", "AuctionCreate", "AuctionUpdate", "AuctionSelectBody",
     "AuctionAdminAssign", "AuctionProviderUpdate", "AuctionRead",
-    # Preference
-    "PreferenceRead",
+    # CheckoutSession
+    "CheckoutSessionRead",
     # Catalog
     "ProductCreate", "ProductUpdate", "ProductRead",
     "ServiceCreate", "ServiceUpdate", "ServiceRead",
@@ -95,9 +102,11 @@ __all__ = [
     # Saler
     "SalerCreate", "SalerUpdate", "SalerRead",
     # Payment
-    "PaymentCreateMP", "PaymentCreateDeposit", "PaymentRead",
+    "PaymentCreateStripe", "PaymentCreateMP", "PaymentCreateDeposit", "PaymentRead",
     # Location
     "LocationRead",
     # Stats
     "Stats",
+    # Stripe
+    "StripeCheckoutSessionCreate", "StripeWebhookEvent",
 ]

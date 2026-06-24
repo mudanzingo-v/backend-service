@@ -113,19 +113,16 @@ class AuctionRead(BaseModel):
     updated_at: datetime
 
 
-class PreferenceRead(BaseModel):
+class CheckoutSessionRead(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     id: str
     auction_id: str
-    mp_id: str | None = None
-    init_point: str | None = None
-    sandbox_init_point: str | None = None
-    date_created: str | None = None
-    client_id: str | None = None
-    collector_id: str | None = None
-    operation_type: str | None = None
-    items: str | None = None
-    payer: str | None = None
-    shipment: str | None = None
+    stripe_session_id: str | None = None
+    url: str | None = None
+    status: str | None = None
+    payment_status: str | None = None
+    amount_total: int | None = None
+    currency: str = "mxn"
+    last_event_id: str | None = None
     created_at: datetime

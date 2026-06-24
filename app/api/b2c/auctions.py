@@ -87,43 +87,43 @@ async def list_all_auctions(
     return [AuctionRead.model_validate(a) for a in await auction_svc.list_auctions(db)]
 
 
-# ---- Preference (MercadoPago) ----
-preference_router = APIRouter(
+# ---- CheckoutSession (Stripe) ----
+checkout_session_router = APIRouter(
     prefix="/quotation/{quotation_id}/auction/{auction_id}",
     tags=["b2c:auctions"],
 )
 
 
-@preference_router.get(
-    "/preference",
+@checkout_session_router.get(
+    "/checkout-session",
     response_model=dict,
-    summary="Get the MP preference for a given auction",
+    summary="Get the Stripe Checkout Session for a given auction",
 )
-async def get_preference(
+async def get_checkout_session(
     quotation_id: str,
     auction_id: str,
     db: AsyncSession = Depends(get_db),
 ) -> dict:
-    """Returns the most recent preference for this auction."""
+    """Returns the most recent Checkout Session for this auction."""
     from sqlalchemy import select
 
-    from app.models import Preference
+    from app.models import CheckoutSession
 
     stmt = (
-        select(Preference)
-        .where(Preference.auction_id == auction_id)
-        .order_by(Preference.created_at.desc())
+        select(CheckoutSession)
+        .where(CheckoutSession.auction_id == auction_id)
+        .order_by(CheckoutSession.created_at.desc())
         .limit(1)
     )
-    pref = (await db.execute(stmt)).scalar_one_or_none()
-    if pref is None:
-        raise NotFoundError("No payment preference yet.")
+    session = (await db.execute(stmt)).scalar_one_or_none()
+    if session is None:
+        raise NotFoundError("No checkout session yet.")
     return {
         "id_auction": auction_id,
-        "id": pref.mp_id,
-        "init_point": pref.init_point,
-        "sandbox_init_point": pref.sandbox_init_point,
-        "client_id": pref.client_id,
-        "date_created": pref.date_created,
-        "payer": pref.payer,
+        "id": session.stripe_session_id,
+        "url": session.url,
+        "sandbox_init_point": session.url,
+        "client_id": session.stripe_session_id,
+        "date_created": session.created_at.isoformat() if session.created_at else None,
+        "payer": None,
     }

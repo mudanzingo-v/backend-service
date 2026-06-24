@@ -63,7 +63,7 @@ async def seeded_quotation_and_auction(
     return q, a
 
 
-async def test_create_mp_payment_returns_201_with_amount_from_auction(
+async def test_create_stripe_payment_returns_201_with_amount_from_auction(
     client: AsyncClient,
     seeded_quotation_and_auction: tuple[Quotation, Auction],
     dev_jwt_admin: str,
@@ -168,7 +168,7 @@ async def test_get_payment_returns_200_with_body(
     assert float(body["amount"]) == 200.00
 
 
-async def test_create_mp_payment_returns_404_for_invalid_auction(
+async def test_create_stripe_payment_returns_404_for_invalid_auction(
     client: AsyncClient,
     db_session: AsyncSession,
     dev_jwt_admin: str,

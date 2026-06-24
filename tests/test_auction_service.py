@@ -293,3 +293,226 @@ async def test_select_auction_transitions_state_to_selected(
     refreshed = await get_auction(db_session, a.id)
     assert refreshed.state == STATE_SELECTED
 
+
+# ---------------------------------------------------------------------------
+# PR2 — Stripe CheckoutSession integration in select_auction
+# ---------------------------------------------------------------------------
+#
+# `select_auction` now calls `app.services.stripe.create_checkout_session`
+# instead of the old MP service, and persists a `CheckoutSession` row plus
+# a `Payment` row with `type="STRIPE"`. These four tests pin that contract.
+# They mock `app.services.stripe.create_checkout_session` to return a
+# deterministic dict, then assert the row state and the return shape.
+
+
+async def test_select_auction_creates_checkout_session_row(
+    db_session: AsyncSession,
+    seeded_provider_and_quotation: tuple[Provider, Quotation],
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """
+    `select_auction` calls `app.services.stripe.create_checkout_session` with
+    `amount_cents=12789` AND `currency="mxn"`; a `checkout_sessions` row
+    exists with `amount_total=12789`, `currency="mxn"`.
+    """
+    from sqlalchemy import select
+
+    from app.models import CheckoutSession
+    from app.schemas import AuctionAdminAssign, AuctionSelectBody
+    from app.services.auction import (
+        admin_assign_provider,
+        select_auction,
+    )
+
+    p, q = seeded_provider_and_quotation
+    body = AuctionAdminAssign(admin_budget=Decimal("100.00"))
+    a = await admin_assign_provider(db_session, q.id, p.id, body)
+
+    # Mock the Stripe service to return a deterministic checkout session.
+    # Use a UNIQUE session id per test (per handoff Learning #3: the
+    # db_session fixture's savepoint-rollback does NOT undo explicit
+    # `db.commit()` calls inside `select_auction`, so prior test runs
+    # can leave rows in the DB; UNIQUE on stripe_session_id would then
+    # collide across tests in the same session).
+    fake_session_id = f"cs_test_aaaa{uuid.uuid4().hex[:8]}"
+    fake_url = f"https://checkout.stripe.com/c/pay/{fake_session_id}"
+
+    async def fake_create_checkout_session(
+        *,
+        auction_id: str,
+        provider_id: str,
+        amount_cents: int,
+        currency: str,
+        success_url: str,
+        cancel_url: str,
+        customer_email: str | None = None,
+        metadata: dict[str, str] | None = None,
+    ) -> dict:
+        assert amount_cents == 12789, f"expected 12789 cents (127.89 MXN); got {amount_cents}"
+        assert currency == "mxn", f"expected currency='mxn'; got {currency!r}"
+        assert metadata is not None
+        assert metadata.get("auction_id") == a.id
+        return {
+            "id": fake_session_id,
+            "url": fake_url,
+            "status": "open",
+            "payment_status": "unpaid",
+            "amount_total": amount_cents,
+            "currency": currency,
+        }
+
+    monkeypatch.setattr(
+        "app.services.stripe.create_checkout_session", fake_create_checkout_session
+    )
+
+    select_body = AuctionSelectBody(id_auction=a.id, cash_on_delivery="false")
+    await select_auction(db_session, q.id, select_body)
+
+    # ---- Assert: a CheckoutSession row was created with the expected fields ----
+    stmt = select(CheckoutSession).where(CheckoutSession.auction_id == a.id)
+    sessions = (await db_session.execute(stmt)).scalars().all()
+    assert len(sessions) == 1, f"expected 1 CheckoutSession; got {len(sessions)}"
+    s = sessions[0]
+    assert s.stripe_session_id == fake_session_id
+    assert s.url == fake_url
+    assert s.amount_total == 12789
+    assert s.currency == "mxn"
+    assert s.status == "open"
+    assert s.payment_status == "unpaid"
+
+
+async def test_select_auction_returns_session_url_not_init_point(
+    db_session: AsyncSession,
+    seeded_provider_and_quotation: tuple[Provider, Quotation],
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """
+    `select_auction` returns a dict with `session_id` and `url` keys; does
+    NOT have keys `init_point` or `sandbox_init_point` (the old MP shape).
+    """
+    from app.schemas import AuctionAdminAssign, AuctionSelectBody
+    from app.services.auction import (
+        admin_assign_provider,
+        select_auction,
+    )
+
+    p, q = seeded_provider_and_quotation
+    body = AuctionAdminAssign(admin_budget=Decimal("100.00"))
+    a = await admin_assign_provider(db_session, q.id, p.id, body)
+
+    async def fake_create_checkout_session(
+        **_kwargs: object,
+    ) -> dict:
+        sid = f"cs_test_cccc{uuid.uuid4().hex[:8]}"
+        return {
+            "id": sid,
+            "url": f"https://checkout.stripe.com/c/pay/{sid}",
+            "status": "open",
+            "payment_status": "unpaid",
+            "amount_total": 12789,
+            "currency": "mxn",
+        }
+
+    monkeypatch.setattr(
+        "app.services.stripe.create_checkout_session", fake_create_checkout_session
+    )
+
+    select_body = AuctionSelectBody(id_auction=a.id, cash_on_delivery="false")
+    result = await select_auction(db_session, q.id, select_body)
+
+    assert "session_id" in result, f"missing 'session_id' in result keys: {list(result.keys())}"
+    assert "url" in result, f"missing 'url' in result keys: {list(result.keys())}"
+    assert "init_point" not in result, (
+        f"old MP key 'init_point' should be gone; got keys: {list(result.keys())}"
+    )
+    assert "sandbox_init_point" not in result, (
+        f"old MP key 'sandbox_init_point' should be gone; got keys: {list(result.keys())}"
+    )
+    assert result["session_id"], "session_id should be non-empty"
+    assert result["url"].startswith("https://checkout.stripe.com/"), (
+        f"url should be a Stripe checkout URL; got {result['url']!r}"
+    )
+
+
+async def test_payment_type_is_stripe_not_mercadopago(
+    db_session: AsyncSession,
+    seeded_provider_and_quotation: tuple[Provider, Quotation],
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """
+    `select_auction` creates a `Payment` row with `type="STRIPE"` and the
+    `stripe_*` fields populated (no MP fields).
+    """
+    from sqlalchemy import select
+
+    from app.models import Payment
+    from app.schemas import AuctionAdminAssign, AuctionSelectBody
+    from app.services.auction import (
+        admin_assign_provider,
+        select_auction,
+    )
+
+    p, q = seeded_provider_and_quotation
+    body = AuctionAdminAssign(admin_budget=Decimal("100.00"))
+    a = await admin_assign_provider(db_session, q.id, p.id, body)
+
+    async def fake_create_checkout_session(
+        **_kwargs: object,
+    ) -> dict:
+        sid = f"cs_test_eeee{uuid.uuid4().hex[:8]}"
+        return {
+            "id": sid,
+            "url": f"https://checkout.stripe.com/c/pay/{sid}",
+            "status": "open",
+            "payment_status": "unpaid",
+            "amount_total": 12789,
+            "currency": "mxn",
+        }
+
+    monkeypatch.setattr(
+        "app.services.stripe.create_checkout_session", fake_create_checkout_session
+    )
+
+    select_body = AuctionSelectBody(id_auction=a.id, cash_on_delivery="false")
+    await select_auction(db_session, q.id, select_body)
+
+    # ---- Assert: a Payment row was created with type=STRIPE ----
+    stmt = select(Payment).where(Payment.auction_id == a.id)
+    payments = (await db_session.execute(stmt)).scalars().all()
+    assert len(payments) == 1, f"expected 1 Payment; got {len(payments)}"
+    payment = payments[0]
+
+    assert payment.type == "STRIPE", (
+        f"expected payment.type='STRIPE'; got {payment.type!r}"
+    )
+    assert payment.stripe_payment_intent_id is None, (
+        "stripe_payment_intent_id is set by the webhook (PR3), not by select_auction"
+    )
+    assert payment.stripe_checkout_session_id is not None
+    assert payment.stripe_checkout_session_id.startswith("cs_test_eeee"), (
+        f"expected stripe_checkout_session_id to start with 'cs_test_eeee'; "
+        f"got {payment.stripe_checkout_session_id!r}"
+    )
+
+
+async def test_payment_model_has_no_mp_columns() -> None:
+    """
+    The `Payment` model has `stripe_*` columns; it does NOT have
+    `mp_payment_id`, `mp_preference_id`, `mp_status`, `mp_status_detail`.
+    """
+    from app.models import Payment
+
+    column_names = {c.name for c in Payment.__table__.columns}
+
+    # New Stripe columns must be present.
+    assert "stripe_payment_intent_id" in column_names
+    assert "stripe_checkout_session_id" in column_names
+    assert "stripe_payment_status" in column_names
+
+    # Old MP columns must be gone.
+    for legacy in ("mp_payment_id", "mp_preference_id", "mp_status", "mp_status_detail"):
+        assert legacy not in column_names, (
+            f"legacy MP column {legacy!r} should be removed from Payment; "
+            f"present columns: {sorted(column_names)}"
+        )
+
