@@ -1,0 +1,48 @@
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: mobbit-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: mobbit
+      POSTGRES_PASSWORD: mobbit
+      POSTGRES_DB: mobbit
+    volumes:
+      - mobbit-pg-data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U mobbit -d mobbit"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: mobbit-api
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    env_file:
+      - .env
+    environment:
+      # Override DATABASE_URL to point at the docker network hostname
+      DATABASE_URL: postgresql+asyncpg://mobbit:mobbit@db:5432/mobbit
+    ports:
+      - "8765:8000"
+    command: >
+      sh -c "alembic upgrade head &&
+             uvicorn app.main:app --host 0.0.0.0 --port 8000 --workers 2"
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:8000/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+volumes:
+  mobbit-pg-data:
+    driver: local

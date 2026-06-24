@@ -1,0 +1,26 @@
+# Build artefacts
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+
+# Env
+.env
+.env.local
+.env.*.local
+
+# IDE
+.idea/
+.vscode/
+*.swp
+
+# Tests (don't ship)
+tests/
+
+# Docs (don't ship)
+README.md
+docs/
