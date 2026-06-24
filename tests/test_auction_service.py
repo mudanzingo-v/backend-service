@@ -245,3 +245,51 @@ async def test_provider_decline_auction_sets_state_declined(
     declined = await provider_decline_auction(db_session, a.id, p.id)
 
     assert declined.state == STATE_DECLINED
+
+
+async def test_list_auctions_paginated_returns_total(
+    db_session: AsyncSession,
+    seeded_provider_and_quotation: tuple[Provider, Quotation],
+) -> None:
+    from app.schemas import AuctionAdminAssign
+    from app.services.auction import (
+        admin_assign_provider,
+        list_auctions_paginated,
+    )
+
+    p, q = seeded_provider_and_quotation
+    body = AuctionAdminAssign(admin_budget=Decimal("100.00"))
+    await admin_assign_provider(db_session, q.id, p.id, body)
+
+    items, total = await list_auctions_paginated(db_session, q.id)
+    assert total == 1
+    assert len(items) == 1
+
+
+async def test_select_auction_transitions_state_to_selected(
+    db_session: AsyncSession,
+    seeded_provider_and_quotation: tuple[Provider, Quotation],
+) -> None:
+    """
+    Verify `select_auction` transitions the target auction to SELECTED
+    (re-fetched via `get_auction` because `select_auction` returns a
+    dict combining auction + preference data).
+    """
+    from app.schemas import AuctionAdminAssign, AuctionSelectBody
+    from app.services.auction import (
+        STATE_SELECTED,
+        admin_assign_provider,
+        get_auction,
+        select_auction,
+    )
+
+    p, q = seeded_provider_and_quotation
+    body = AuctionAdminAssign(admin_budget=Decimal("100.00"))
+    a = await admin_assign_provider(db_session, q.id, p.id, body)
+
+    select_body = AuctionSelectBody(id_auction=a.id, cash_on_delivery="false")
+    await select_auction(db_session, q.id, select_body)
+
+    refreshed = await get_auction(db_session, a.id)
+    assert refreshed.state == STATE_SELECTED
+

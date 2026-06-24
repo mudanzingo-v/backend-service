@@ -166,3 +166,30 @@ async def test_get_payment_returns_200_with_body(
     assert body["id"] == payment_id
     assert body["type"] == "DEPOSIT"
     assert float(body["amount"]) == 200.00
+
+
+async def test_create_mp_payment_returns_404_for_invalid_auction(
+    client: AsyncClient,
+    db_session: AsyncSession,
+    dev_jwt_admin: str,
+    auth_header: Callable[[str], dict[str, str]],
+) -> None:
+    from app.models import Quotation
+    u = uuid.uuid4().hex[:12]
+    q = Quotation(
+        client_name=u,
+        client_phone="+525511111111",
+        client_email=f"{u}@example.com",
+        origin_postal_code="01000",
+        destination_postal_code="03100",
+    )
+    db_session.add(q)
+    await db_session.commit()
+    await db_session.refresh(q)
+
+    resp = await client.post(
+        f"/api/admin/quotation/{q.id}/payment/mercadopago",
+        json={"id_auction": f"nonexistent-{uuid.uuid4().hex}"},
+        headers=auth_header(dev_jwt_admin),
+    )
+    assert resp.status_code == 404

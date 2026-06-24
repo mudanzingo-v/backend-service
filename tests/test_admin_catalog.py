@@ -21,7 +21,7 @@ import pytest
 from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.models import InventoryCategory
+from app.models import InventoryCategory, InventoryItem
 
 
 def _unique() -> str:
@@ -273,3 +273,63 @@ async def test_list_all_inventory_items_returns_200_with_pagination(
     assert isinstance(resp.json(), list)
     for header in ("X-Total-Count", "X-Limit", "X-Offset", "X-Has-Next"):
         assert header in resp.headers, f"missing pagination header {header!r}"
+
+
+async def test_get_inventory_item_returns_404_for_unknown(
+    client: AsyncClient,
+    db_session: AsyncSession,
+    dev_jwt_admin: str,
+    auth_header: Callable[[str], dict[str, str]],
+) -> None:
+    cat = InventoryCategory(name=f"cat-{uuid.uuid4().hex[:12]}")
+    db_session.add(cat)
+    await db_session.commit()
+    await db_session.refresh(cat)
+
+    resp = await client.get(
+        f"/api/admin/inventory/category/{cat.id}/item/nonexistent-{uuid.uuid4().hex}",
+        headers=auth_header(dev_jwt_admin),
+    )
+    assert resp.status_code == 404
+
+
+async def test_update_inventory_item_returns_404_for_unknown(
+    client: AsyncClient,
+    db_session: AsyncSession,
+    dev_jwt_admin: str,
+    auth_header: Callable[[str], dict[str, str]],
+) -> None:
+    cat = InventoryCategory(name=f"cat-{uuid.uuid4().hex[:12]}")
+    db_session.add(cat)
+    await db_session.commit()
+    await db_session.refresh(cat)
+
+    resp = await client.put(
+        f"/api/admin/inventory/category/{cat.id}/item/nonexistent-{uuid.uuid4().hex}",
+        json={"name": "updated"},
+        headers=auth_header(dev_jwt_admin),
+    )
+    assert resp.status_code == 404
+
+
+async def test_get_inventory_item_returns_404_for_wrong_category(
+    client: AsyncClient,
+    db_session: AsyncSession,
+    dev_jwt_admin: str,
+    auth_header: Callable[[str], dict[str, str]],
+) -> None:
+    cat1 = InventoryCategory(name=f"cat1-{uuid.uuid4().hex[:12]}")
+    cat2 = InventoryCategory(name=f"cat2-{uuid.uuid4().hex[:12]}")
+    db_session.add(cat1)
+    db_session.add(cat2)
+    await db_session.flush()
+    item = InventoryItem(name="x", category_id=cat1.id)
+    db_session.add(item)
+    await db_session.commit()
+    await db_session.refresh(item)
+
+    resp = await client.get(
+        f"/api/admin/inventory/category/{cat2.id}/item/{item.id}",
+        headers=auth_header(dev_jwt_admin),
+    )
+    assert resp.status_code == 404

@@ -151,3 +151,43 @@ async def test_delete_saler_returns_200_with_message(
     assert "message" in body
     assert "deleted" in body["message"].lower()
     assert saler_id in body["message"]
+
+
+async def test_get_saler_returns_404_for_unknown_id(
+    client: AsyncClient,
+    dev_jwt_admin: str,
+    auth_header: Callable[[str], dict[str, str]],
+) -> None:
+    """`GET /api/admin/saler/{nonexistent}` returns 404."""
+    resp = await client.get(
+        f"/api/admin/saler/nonexistent-{uuid.uuid4().hex}",
+        headers=auth_header(dev_jwt_admin),
+    )
+    assert resp.status_code == 404
+
+
+async def test_update_saler_returns_404_for_unknown_id(
+    client: AsyncClient,
+    dev_jwt_admin: str,
+    auth_header: Callable[[str], dict[str, str]],
+) -> None:
+    """`PUT /api/admin/saler/{nonexistent}` returns 404."""
+    resp = await client.put(
+        f"/api/admin/saler/nonexistent-{uuid.uuid4().hex}",
+        json={"email": "x@example.com"},
+        headers=auth_header(dev_jwt_admin),
+    )
+    assert resp.status_code == 404
+
+
+async def test_delete_saler_returns_404_for_unknown_id(
+    client: AsyncClient,
+    dev_jwt_admin: str,
+    auth_header: Callable[[str], dict[str, str]],
+) -> None:
+    """`DELETE /api/admin/saler/{nonexistent}` returns 404."""
+    resp = await client.delete(
+        f"/api/admin/saler/nonexistent-{uuid.uuid4().hex}",
+        headers=auth_header(dev_jwt_admin),
+    )
+    assert resp.status_code == 404

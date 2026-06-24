@@ -21,6 +21,47 @@ production tree are 5 lines in `pyproject.toml` (`[tool.pytest.ini_options]`)
 adding `addopts` (coverage report, strict markers) and the `unit` /
 `integration` marker registrations.
 
+## Test files
+
+The suite is built incrementally across two OpenSpec changes:
+
+### Smoke suite (`backend-pytest-smoke-suite`, archived)
+
+| File | Purpose |
+|---|---|
+| `test_health.py` | `/health` and `/` pre-include_router endpoints |
+| `test_openapi.py` | `/openapi.json`, `/docs`, `/redoc`; router prefix presence |
+| `test_pagination.py` | `set_pagination_headers` helper + admin pagination integration |
+| `test_auth_dev_mode.py` | dev-jwt happy paths + cross-role + `AUTH_SKIP_VERIFICATION` safety guard |
+
+### Coverage extension (`backend-pytest-coverage-80`, current)
+
+Targets business-logic modules identified as the highest-leverage coverage gaps:
+
+| File | Module under test | Tests | What it pins |
+|---|---|---:|---|
+| `test_pricing.py` | `app/services/pricing.py` | 5 | Formula contract (no-COD + COD + §5.2 bug-fix invariant + zero edge case) |
+| `test_quotation_service.py` | `app/services/quotation.py` | 15 | 9 service functions + 2 state transitions (publish + cancel) with happy paths + error paths + idempotency + synthetic-record filter |
+| `test_admin_quotations.py` | `app/api/admin/quotations.py` | 8 | 8 HTTP endpoints (list with pagination, CRUD, publish, cancel, assign-provider) |
+| `test_admin_stats.py` | `app/api/admin/stats.py` | 2 | Aggregate counts: happy path + empty-DB edge case |
+
+### Shared modules (helper code, not tests)
+
+| File | Purpose |
+|---|---|
+| `conftest.py` | Fixtures: `app`, `client`, `db_session`, `engine`, `migrate`, `dev_jwt_admin`, `dev_jwt_mobbit`, `dev_jwt_provider`, `auth_header` |
+| `_db.py` | Test DB lifecycle: `ensure_test_db_exists`, `run_alembic_upgrade_head`, `make_test_database_url` |
+| `_jwt.py` | Dev-JWT minting helper (`make_dev_jwt`) + claim templates per pool |
+
+### Coverage target
+
+The combined suite targets **≥ 80 % global coverage** (per `ROADMAP.md`
+Phase 3.1). Current state: see `pytest --cov=app --cov-report=term-missing`.
+
+The change that flips `strict_tdd: true` and adds `--cov-fail-under=NN`
+is `strict-tdd-flip-backend` (proposed). This README will be updated
+when that change lands.
+
 ## Prerequisites
 
 - **Postgres at `localhost:5432`** with dev creds `mobbit/mobbit`.

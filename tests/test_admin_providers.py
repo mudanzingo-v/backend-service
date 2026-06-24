@@ -230,3 +230,66 @@ async def test_get_truck_returns_200_with_body(
         f"expected 200; got {resp.status_code} body={resp.text!r}"
     )
     assert resp.json()["id"] == truck_id
+
+
+async def test_update_provider_returns_404_for_unknown_id(
+    client: AsyncClient,
+    dev_jwt_admin: str,
+    auth_header: Callable[[str], dict[str, str]],
+) -> None:
+    resp = await client.put(
+        f"/api/admin/provider/nonexistent-{uuid.uuid4().hex}",
+        json={"phone": "+525500000000"},
+        headers=auth_header(dev_jwt_admin),
+    )
+    assert resp.status_code == 404
+
+
+async def test_get_truck_returns_404_for_unknown_id(
+    client: AsyncClient,
+    dev_jwt_admin: str,
+    auth_header: Callable[[str], dict[str, str]],
+) -> None:
+    pid = f"prov-{uuid.uuid4().hex[:12]}"
+    await client.post(
+        "/api/admin/provider",
+        json={"id": pid, "name": "Truck Provider", "active": True},
+        headers=auth_header(dev_jwt_admin),
+    )
+    resp = await client.get(
+        f"/api/admin/provider/{pid}/truck/nonexistent-{uuid.uuid4().hex}",
+        headers=auth_header(dev_jwt_admin),
+    )
+    assert resp.status_code == 404
+
+
+async def test_update_truck_returns_404_for_unknown_id(
+    client: AsyncClient,
+    dev_jwt_admin: str,
+    auth_header: Callable[[str], dict[str, str]],
+) -> None:
+    pid = f"prov-{uuid.uuid4().hex[:12]}"
+    await client.post(
+        "/api/admin/provider",
+        json={"id": pid, "name": "Truck Provider", "active": True},
+        headers=auth_header(dev_jwt_admin),
+    )
+    resp = await client.put(
+        f"/api/admin/provider/{pid}/truck/nonexistent-{uuid.uuid4().hex}",
+        json={"brand": "Volvo"},
+        headers=auth_header(dev_jwt_admin),
+    )
+    assert resp.status_code == 404
+
+
+async def test_create_truck_returns_404_for_unknown_provider(
+    client: AsyncClient,
+    dev_jwt_admin: str,
+    auth_header: Callable[[str], dict[str, str]],
+) -> None:
+    resp = await client.post(
+        f"/api/admin/provider/nonexistent-{uuid.uuid4().hex}/truck",
+        json={"plates": "X", "brand": "X", "active": True},
+        headers=auth_header(dev_jwt_admin),
+    )
+    assert resp.status_code == 404
