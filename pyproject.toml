@@ -58,3 +58,8 @@ ignore_missing_imports = true
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
 testpaths = ["tests"]
+addopts = "-v --tb=short --strict-markers --cov=app --cov-report=term-missing"
+markers = [
+    "unit: pure unit tests (no DB, no HTTP)",
+    "integration: tests that hit the FastAPI app or the test DB",
+]
