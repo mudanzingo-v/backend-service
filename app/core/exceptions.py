@@ -47,6 +47,11 @@ class NotImplementedYetError(AppError):
     message = "Endpoint not implemented yet"
 
 
+class StripeError(AppError):
+    status_code = 502
+    message = "Stripe API error"
+
+
 def register_exception_handlers(app: FastAPI) -> None:
     @app.exception_handler(AppError)
     async def _app_error_handler(_: Request, exc: AppError) -> JSONResponse:

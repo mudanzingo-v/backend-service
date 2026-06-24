@@ -45,12 +45,16 @@ class Settings(BaseSettings):
     dev_provider_id: str = "678ff2ad-e184-42e4-9dcf-f9962f4487a9"
 
     # External services
-    mercadopago_access_token: str = ""
-    mercadopago_api_url: str = "https://api.mercadopago.com"
-    mercadopago_mock: bool = False
     b2c_frontend_url: str = "http://localhost:3051"
     copomex_api_token: str = ""
     copomex_api_url: str = "https://api.copomex.com"
+
+    # Payments (Stripe)
+    # Empty stripe_secret_key + is_local=True triggers mock mode in app/services/stripe.py
+    stripe_secret_key: str = ""
+    stripe_publishable_key: str = ""
+    stripe_webhook_secret: str = ""
+    stripe_api_version: str = "2024-06-20"
 
     # Pricing model
     pricing_mobbit_fee: float = 0.05
