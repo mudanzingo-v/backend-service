@@ -23,6 +23,7 @@ If cash_on_delivery:
     cash_on_delivery_provider = subtotal      (100% to provider)
     cash_on_delivery_mobbit   = subtotal * (pricing_cash_on_delivery_mobbit_fee + 1)
 """
+
 from decimal import Decimal
 
 from app.services.pricing import PriceBreakdown, compute_price
@@ -81,9 +82,7 @@ def test_compute_price_high_subtotal_quantizes_correctly() -> None:
     assert result.total == Decimal("15788.87")
     # Money-conservation invariant: the four pieces sum to the total.
     summed = result.subtotal + result.mobbit_fee + result.iva + result.transaction_fee
-    assert summed == result.total, (
-        f"money-conservation violated: {summed} != {result.total}"
-    )
+    assert summed == result.total, f"money-conservation violated: {summed} != {result.total}"
 
 
 def test_compute_price_with_cod_breaks_down_provider_and_mobbit() -> None:
@@ -91,9 +90,7 @@ def test_compute_price_with_cod_breaks_down_provider_and_mobbit() -> None:
     Pin the COD branch.
 
     When `cash_on_delivery=True`:
-      - `cash_on_delivery_provider = subtotal` (100% to provider — the
-        setting `pricing_cash_on_delivery_provider_fee` is intentionally
-        NOT used here; the production code returns `subtotal` directly).
+      - `cash_on_delivery_provider = subtotal` (100% to provider).
       - `cash_on_delivery_mobbit = subtotal * (cod_mobbit_fee + 1)`
         = subtotal * 1.15 (because `pricing_cash_on_delivery_mobbit_fee = 0.15`).
 
@@ -106,12 +103,10 @@ def test_compute_price_with_cod_breaks_down_provider_and_mobbit() -> None:
 
     # COD-specific breakdown fields.
     assert cod_result.cash_on_delivery_provider == Decimal("500.00"), (
-        f"cod_provider must equal subtotal=500.00; "
-        f"got {cod_result.cash_on_delivery_provider}"
+        f"cod_provider must equal subtotal=500.00; got {cod_result.cash_on_delivery_provider}"
     )
     assert cod_result.cash_on_delivery_mobbit == Decimal("575.00"), (
-        f"cod_mobbit must equal subtotal * 1.15 = 575.00; "
-        f"got {cod_result.cash_on_delivery_mobbit}"
+        f"cod_mobbit must equal subtotal * 1.15 = 575.00; got {cod_result.cash_on_delivery_mobbit}"
     )
 
     # Base formula fields must be UNCHANGED by the COD flag.
@@ -151,8 +146,7 @@ def test_compute_price_iva_is_calculated_over_subtotal_plus_mobbit_fee() -> None
         f"expected {expected_iva}, got {result.iva}"
     )
     assert result.iva == Decimal("168.00"), (
-        f"iva regression: the §5.2 bug would yield 160.00; "
-        f"the fix yields 168.00; got {result.iva}"
+        f"iva regression: the §5.2 bug would yield 160.00; the fix yields 168.00; got {result.iva}"
     )
 
 

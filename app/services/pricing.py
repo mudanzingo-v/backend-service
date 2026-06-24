@@ -8,7 +8,7 @@ the original Rust used the constant `mobbit_fee` (0.05) inside the
 `mobbit_fee_value`. This implementation uses the calculated value.
 """
 from dataclasses import dataclass
-from decimal import Decimal, ROUND_HALF_UP
+from decimal import ROUND_HALF_UP, Decimal
 
 from app.config import settings
 
@@ -53,7 +53,6 @@ def compute_price(
     fee = Decimal(str(settings.pricing_mobbit_fee))
     iva = Decimal(str(settings.pricing_iva))
     tx = Decimal(str(settings.pricing_transaction_fee))
-    cod_provider = Decimal(str(settings.pricing_cash_on_delivery_provider_fee))
     cod_mobbit = Decimal(str(settings.pricing_cash_on_delivery_mobbit_fee))
 
     subtotal = _q2(price_load)
