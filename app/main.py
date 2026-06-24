@@ -7,6 +7,7 @@ Run locally:
 Or via Docker:
     docker compose up
 """
+
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
@@ -18,7 +19,8 @@ from app.api.provider import provider_router
 from app.api.webhooks.mercadopago import router as webhook_router
 from app.config import settings
 from app.core.exceptions import register_exception_handlers
-from app.core.logging import setup_logging, get_logger
+from app.core.logging import get_logger, setup_logging
+from app.core.middleware import install_request_context_middleware
 
 
 @asynccontextmanager
@@ -28,13 +30,18 @@ async def lifespan(app: FastAPI):
     log = get_logger("app.startup")
     log.info(
         "Starting %s in env=%s on %s:%d",
-        settings.app_name, settings.app_env, settings.app_host, settings.app_port,
+        settings.app_name,
+        settings.app_env,
+        settings.app_host,
+        settings.app_port,
     )
     log.info("Database: %s", settings.database_url.split("@")[-1])
-    log.info("Cognito pools: mobbit=%s providers=%s rccm=%s",
-             settings.cognito_user_pool_mobbit,
-             settings.cognito_user_pool_providers,
-             settings.cognito_user_pool_rccm)
+    log.info(
+        "Cognito pools: mobbit=%s providers=%s rccm=%s",
+        settings.cognito_user_pool_mobbit,
+        settings.cognito_user_pool_providers,
+        settings.cognito_user_pool_rccm,
+    )
     log.info("Auth skip verification: %s (DO NOT USE IN PROD)", settings.auth_skip_verification)
     yield
     log.info("Shutting down %s", settings.app_name)
@@ -52,6 +59,10 @@ app = FastAPI(
 )
 
 # ---- Middleware ----
+# Request-context middleware FIRST: it sets request_id + emits per-request
+# structured logs (request.start, request.end) that include everything
+# the request handler does downstream.
+install_request_context_middleware(app)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.cors_origins_list,
@@ -65,6 +76,7 @@ app.add_middleware(
         "X-Limit",
         "X-Offset",
         "X-Has-Next",
+        "X-Request-ID",
     ],
 )
 
@@ -82,6 +94,15 @@ app.include_router(webhook_router)
 @app.get("/health", tags=["health"])
 async def health() -> dict:
     return {"status": "ok", "service": settings.app_name, "env": settings.app_env}
+
+
+@app.get("/debug/request-id", tags=["health"], include_in_schema=False)
+async def debug_request_id() -> dict:
+    """Debug endpoint: returns the current request_id from the
+    RequestContextMiddleware contextvar. Used by tests to verify
+    that the middleware is properly setting the context."""
+    from app.core.logging import request_id_var
+    return {"request_id": request_id_var.get()}
 
 
 @app.get("/", tags=["health"])
