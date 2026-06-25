@@ -12,7 +12,7 @@ from app.core.pagination import paginate, set_pagination_headers
 from app.models import Auction, Payment
 from app.schemas import (
     PaymentCreateDeposit,
-    PaymentCreateMP,
+    PaymentCreateStripe,
     PaymentRead,
 )
 
@@ -22,26 +22,32 @@ quotation_payments_router = APIRouter(
 
 
 @quotation_payments_router.post(
-    "/mercadopago",
+    "/stripe",
     response_model=PaymentRead,
     status_code=status.HTTP_201_CREATED,
-    summary="Create a MercadoPago payment link for a quotation",
+    summary="Create a Stripe payment record for a quotation",
 )
-async def create_mp_payment(
+async def create_stripe_payment(
     quotation_id: str,
-    body: PaymentCreateMP,
+    body: PaymentCreateStripe,
     db: AsyncSession = Depends(get_db),
     _admin: object = Depends(current_admin),
 ):
-    """Creates a Payment record (PENDING). The MP preference is created
-    separately by the B2C client when they select an auction."""
+    """Creates a Payment record (PENDING, type=STRIPE).
+
+    The actual Stripe Checkout Session is created by the B2C client
+    when they select an auction (see ``app/services/auction.py::
+    select_auction``). This endpoint is the admin-side recording of
+    the payment intent; the Stripe-hosted checkout flow lives on the
+    B2C frontend (PR5).
+    """
     auction = await db.get(Auction, body.id_auction)
     if auction is None:
         raise NotFoundError(f"Auction {body.id_auction} not found")
     p = Payment(
         quotation_id=quotation_id,
         auction_id=body.id_auction,
-        type="MERCADOPAGO",
+        type="STRIPE",
         state="PENDING",
         amount=auction.total,
         currency="MXN",

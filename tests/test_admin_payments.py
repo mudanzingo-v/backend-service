@@ -1,11 +1,12 @@
 """
 Admin payments HTTP integration tests.
 
-Four tests for `app/api/admin/payments.py`:
-  - `POST /api/admin/quotation/{q_id}/payment/mercadopago`
+Five tests for `app/api/admin/payments.py`:
+  - `POST /api/admin/quotation/{q_id}/payment/stripe` (PR3 rename of MP)
   - `POST /api/admin/quotation/{q_id}/payment/deposito`
   - `GET /api/admin/quotation/{q_id}/payment/s`
   - `GET /api/admin/payment/{payment_id}`
+  - `POST /api/admin/quotation/{q_id}/payment/mercadopago` → 404 (legacy)
 
 The MP payment requires a pre-existing Auction (it pulls `amount`
 from `auction.total`). The deposit payment takes an explicit amount.
@@ -70,12 +71,13 @@ async def test_create_stripe_payment_returns_201_with_amount_from_auction(
     auth_header: Callable[[str], dict[str, str]],
 ) -> None:
     """
-    `POST /quotation/{q_id}/payment/mercadopago` with `id_auction`
-    creates a Payment record with `amount` pulled from `auction.total`.
+    `POST /quotation/{q_id}/payment/stripe` with `id_auction`
+    creates a Payment record with `amount` pulled from `auction.total`
+    and `type="STRIPE"`.
     """
     q, a = seeded_quotation_and_auction
     resp = await client.post(
-        f"/api/admin/quotation/{q.id}/payment/mercadopago",
+        f"/api/admin/quotation/{q.id}/payment/stripe",
         json={"id_auction": a.id},
         headers=auth_header(dev_jwt_admin),
     )
@@ -85,7 +87,7 @@ async def test_create_stripe_payment_returns_201_with_amount_from_auction(
     body = resp.json()
     assert body["quotation_id"] == q.id
     assert body["auction_id"] == a.id
-    assert body["type"] == "MERCADOPAGO"
+    assert body["type"] == "STRIPE"
     assert body["state"] == "PENDING"
     assert float(body["amount"]) == 127.89
 
@@ -188,8 +190,32 @@ async def test_create_stripe_payment_returns_404_for_invalid_auction(
     await db_session.refresh(q)
 
     resp = await client.post(
-        f"/api/admin/quotation/{q.id}/payment/mercadopago",
+        f"/api/admin/quotation/{q.id}/payment/stripe",
         json={"id_auction": f"nonexistent-{uuid.uuid4().hex}"},
         headers=auth_header(dev_jwt_admin),
     )
     assert resp.status_code == 404
+
+
+async def test_old_mercadopago_endpoint_returns_404(
+    client: AsyncClient,
+    seeded_quotation_and_auction: tuple[Quotation, Auction],
+    dev_jwt_admin: str,
+    auth_header: Callable[[str], dict[str, str]],
+) -> None:
+    """After PR3, the legacy `/payment/mercadopago` route is renamed.
+
+    Per `req-stripe-webhook-and-admin-endpoints-001 §"test_old_mercadopago_endpoint_returns_404"`,
+    a POST to the legacy path must return 404. Guards against
+    accidental route re-introduction.
+    """
+    q, a = seeded_quotation_and_auction
+    resp = await client.post(
+        f"/api/admin/quotation/{q.id}/payment/mercadopago",
+        json={"id_auction": a.id},
+        headers=auth_header(dev_jwt_admin),
+    )
+    assert resp.status_code == 404, (
+        f"old /payment/mercadopago should be 404 after PR3 rename; "
+        f"got {resp.status_code} body={resp.text!r}"
+    )

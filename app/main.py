@@ -16,7 +16,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.api.admin.router import admin_router
 from app.api.b2c.router import b2c_router
 from app.api.provider import provider_router
-from app.api.webhooks.mercadopago import router as webhook_router
+from app.api.webhooks.stripe import router as webhook_router
 from app.config import settings
 from app.core.exceptions import register_exception_handlers
 from app.core.logging import get_logger, setup_logging
