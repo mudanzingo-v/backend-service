@@ -140,10 +140,10 @@ These items are deliberately deferred to follow-up changes:
   generate the report; gating happens in the next change.
 - **OpenAPI snapshot file** (`tests/snapshots/openapi.json`) → future
   contract-tests change.
-- **MP webhook smoke test** (signature validation, payment status
-  lookup) → Phase 1.1 `mp-webhook-receiver` change. The current handler
-  is a documented stub (`app/api/webhooks/mercadopago.py`) that returns
-  200 + `{}`; asserting it would be a tautology.
+- **MP webhook smoke test** → superseded by the Stripe webhook test suite
+  (`tests/test_stripe_webhook.py`, 13 tests covering signature verification,
+  event dispatch, and idempotency). The legacy webhook handler was removed
+  in PR4 of `stripe-payment-replacement`.
 - **Frontend test runners** (`vitest` + `@testing-library/react` per
   `front-*/`) → `frontend-test-runners-bootstrap` change.
 - **GitHub Actions workflow** (`.github/workflows/backend.yml`) →

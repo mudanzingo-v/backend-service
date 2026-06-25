@@ -48,7 +48,6 @@ from app.schemas.common import Message
 from app.schemas.payment import (
     LocationRead,
     PaymentCreateDeposit,
-    PaymentCreateMP,  # backward-compat alias for PaymentCreateStripe (PR2)
     PaymentCreateStripe,
     PaymentRead,
 )
@@ -102,7 +101,7 @@ __all__ = [
     # Saler
     "SalerCreate", "SalerUpdate", "SalerRead",
     # Payment
-    "PaymentCreateStripe", "PaymentCreateMP", "PaymentCreateDeposit", "PaymentRead",
+    "PaymentCreateStripe", "PaymentCreateDeposit", "PaymentRead",
     # Location
     "LocationRead",
     # Stats

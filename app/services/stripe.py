@@ -6,11 +6,6 @@ Token read from env (`STRIPE_SECRET_KEY`), not from code. Mock mode
 Checkout Session dict without making any HTTP call to `api.stripe.com`,
 so local dev and CI never hit Stripe's API. Real mode delegates to
 `stripe.checkout.Session.create` / `retrieve` from the Stripe Python SDK.
-
-Mirrors the public surface of the prior `app/services/mercadopago.py`
-(create_preference / retrieve_preference analogue) but with Stripe-
-neutral semantics. PR2 will swap `select_auction` to use this module
-instead of the MP service.
 """
 from __future__ import annotations
 

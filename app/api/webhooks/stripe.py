@@ -22,9 +22,6 @@ Other event types (``charge.refunded``, ``customer.created``, etc.)
 return 200 with ``{"received": true}`` and a log line — never mutate
 the DB. Refund handling is deferred per design §OQ3.
 
-The MP webhook at ``app/api/webhooks/mercadopago.py`` is now dead
-(replaced in ``app/main.py``) and will be deleted in PR4.
-
 Signature verification
 ----------------------
 

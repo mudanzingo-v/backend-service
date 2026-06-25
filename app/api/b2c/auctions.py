@@ -46,10 +46,10 @@ async def select_auction(
     """
     The B2C client picks one auction. This:
     1. Transitions the chosen auction to SELECTED, all others to REJECTED.
-    2. Creates a MercadoPago preference.
+    2. Creates a Stripe Checkout Session.
     3. Creates a Payment record (state = PENDING).
 
-    Returns the MP preference (so the client can redirect to `init_point`).
+    Returns the Checkout Session (so the client can redirect to its `url`).
     """
     return await auction_svc.select_auction(db, quotation_id, body)
 
@@ -122,7 +122,6 @@ async def get_checkout_session(
         "id_auction": auction_id,
         "id": session.stripe_session_id,
         "url": session.url,
-        "sandbox_init_point": session.url,
         "client_id": session.stripe_session_id,
         "date_created": session.created_at.isoformat() if session.created_at else None,
         "payer": None,

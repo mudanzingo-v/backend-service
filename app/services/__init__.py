@@ -1,10 +1,9 @@
 """Service modules for the mobbit backend.
 
-`stripe` is the active payment gateway (PR1+ of `stripe-payment-replacement`).
-`mercadopago` was the prior gateway; the module is preserved until PR4
-deletes it along with `app/api/webhooks/mercadopago.py`.
+`stripe` is the active payment gateway (the only one — see
+`stripe-payment-replacement`). Re-exporting here keeps the import surface
+small:
 
-Re-exporting here keeps the import surface small:
     from app.services import stripe
 """
 from __future__ import annotations

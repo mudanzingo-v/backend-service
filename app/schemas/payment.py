@@ -14,16 +14,6 @@ class PaymentCreateStripe(BaseModel):
     id_auction: str
 
 
-# Backward-compat alias for code paths still wired to the MP naming.
-# The admin payments endpoint (`app/api/admin/payments.py`) was not
-# rewritten as part of PR2 — that lands in PR3 — so it still imports
-# `PaymentCreateMP`. We keep the alias so the existing import path
-# resolves to the new Stripe-shaped schema. Safe to remove in PR4
-# once the admin endpoint is fully migrated and the legacy import
-# is gone.
-PaymentCreateMP = PaymentCreateStripe
-
-
 class PaymentCreateDeposit(BaseModel):
     """Admin records a deposit payment."""
 

@@ -872,9 +872,9 @@
         "title": "PaymentCreateDeposit",
         "type": "object"
       },
-      "PaymentCreateMP": {
+      "PaymentCreateStripe": {
         "additionalProperties": false,
-        "description": "Admin creates an MP payment preference for a quotation.",
+        "description": "Admin creates a Stripe payment preference for a quotation.",
         "properties": {
           "id_auction": {
             "title": "Id Auction",
@@ -884,7 +884,7 @@
         "required": [
           "id_auction"
         ],
-        "title": "PaymentCreateMP",
+        "title": "PaymentCreateStripe",
         "type": "object"
       },
       "PaymentRead": {
@@ -925,50 +925,6 @@
             "title": "Id",
             "type": "string"
           },
-          "mp_payment_id": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Mp Payment Id"
-          },
-          "mp_preference_id": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Mp Preference Id"
-          },
-          "mp_status": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Mp Status"
-          },
-          "mp_status_detail": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Mp Status Detail"
-          },
           "quotation_id": {
             "title": "Quotation Id",
             "type": "string"
@@ -976,6 +932,39 @@
           "state": {
             "title": "State",
             "type": "string"
+          },
+          "stripe_checkout_session_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Stripe Checkout Session Id"
+          },
+          "stripe_payment_intent_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Stripe Payment Intent Id"
+          },
+          "stripe_payment_status": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Stripe Payment Status"
           },
           "type": {
             "title": "Type",
@@ -5082,64 +5071,6 @@
         ]
       }
     },
-    "/api/admin/quotation/{quotation_id}/payment/mercadopago": {
-      "post": {
-        "description": "Creates a Payment record (PENDING). The MP preference is created\nseparately by the B2C client when they select an auction.",
-        "operationId": "create_mp_payment_api_admin_quotation__quotation_id__payment_mercadopago_post",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "quotation_id",
-            "required": true,
-            "schema": {
-              "title": "Quotation Id",
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/PaymentCreateMP"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "201": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/PaymentRead"
-                }
-              }
-            },
-            "description": "Successful Response"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            },
-            "description": "Validation Error"
-          }
-        },
-        "security": [
-          {
-            "HTTPBearer": []
-          }
-        ],
-        "summary": "Create a MercadoPago payment link for a quotation",
-        "tags": [
-          "admin:payments"
-        ]
-      }
-    },
     "/api/admin/quotation/{quotation_id}/payment/s": {
       "get": {
         "operationId": "list_payments_api_admin_quotation__quotation_id__payment_s_get",
@@ -5209,6 +5140,64 @@
           }
         ],
         "summary": "List payments for a quotation",
+        "tags": [
+          "admin:payments"
+        ]
+      }
+    },
+    "/api/admin/quotation/{quotation_id}/payment/stripe": {
+      "post": {
+        "description": "Creates a Payment record (PENDING, type=STRIPE).\n\nThe actual Stripe Checkout Session is created by the B2C client\nwhen they select an auction (see ``app/services/auction.py::\nselect_auction``). This endpoint is the admin-side recording of\nthe payment intent; the Stripe-hosted checkout flow lives on the\nB2C frontend (PR5).",
+        "operationId": "create_stripe_payment_api_admin_quotation__quotation_id__payment_stripe_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "quotation_id",
+            "required": true,
+            "schema": {
+              "title": "Quotation Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PaymentCreateStripe"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaymentRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Create a Stripe payment record for a quotation",
         "tags": [
           "admin:payments"
         ]
@@ -6136,7 +6125,7 @@
     },
     "/api/b2c/quotation/{quotation_id}/auction": {
       "put": {
-        "description": "The B2C client picks one auction. This:\n1. Transitions the chosen auction to SELECTED, all others to REJECTED.\n2. Creates a MercadoPago preference.\n3. Creates a Payment record (state = PENDING).\n\nReturns the MP preference (so the client can redirect to `init_point`).",
+        "description": "The B2C client picks one auction. This:\n1. Transitions the chosen auction to SELECTED, all others to REJECTED.\n2. Creates a Stripe Checkout Session.\n3. Creates a Payment record (state = PENDING).\n\nReturns the Checkout Session (so the client can redirect to its `url`).",
         "operationId": "select_auction_api_b2c_quotation__quotation_id__auction_put",
         "parameters": [
           {
@@ -6236,10 +6225,10 @@
         ]
       }
     },
-    "/api/b2c/quotation/{quotation_id}/auction/{auction_id}/preference": {
+    "/api/b2c/quotation/{quotation_id}/auction/{auction_id}/checkout-session": {
       "get": {
-        "description": "Returns the most recent preference for this auction.",
-        "operationId": "get_preference_api_b2c_quotation__quotation_id__auction__auction_id__preference_get",
+        "description": "Returns the most recent Checkout Session for this auction.",
+        "operationId": "get_checkout_session_api_b2c_quotation__quotation_id__auction__auction_id__checkout_session_get",
         "parameters": [
           {
             "in": "path",
@@ -6266,7 +6255,7 @@
               "application/json": {
                 "schema": {
                   "additionalProperties": true,
-                  "title": "Response Get Preference Api B2C Quotation  Quotation Id  Auction  Auction Id  Preference Get",
+                  "title": "Response Get Checkout Session Api B2C Quotation  Quotation Id  Auction  Auction Id  Checkout Session Get",
                   "type": "object"
                 }
               }
@@ -6284,7 +6273,7 @@
             "description": "Validation Error"
           }
         },
-        "summary": "Get the MP preference for a given auction",
+        "summary": "Get the Stripe Checkout Session for a given auction",
         "tags": [
           "b2c:auctions"
         ]
@@ -6673,25 +6662,49 @@
         ]
       }
     },
-    "/webhooks/payments/mercadopago": {
+    "/webhooks/payments/stripe": {
       "post": {
-        "description": "Receives MP notifications. The MVP stub returns 200 OK with empty body, matching the original Rust lambda. To implement: see the module docstring.",
-        "operationId": "mercadopago_webhook_webhooks_payments_mercadopago_post",
+        "description": "Stripe webhook entrypoint.\n\nReturns:\n\n- 200 ``{\"received\": true}`` on successful processing (any event\n  type, including unknown ones \u2014 Stripe treats that as success and\n  stops retrying).\n- 400 ``{\"detail\": \"...\"}`` on missing or invalid signature.",
+        "operationId": "stripe_webhook_webhooks_payments_stripe_post",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "Stripe-Signature",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Stripe-Signature"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "content": {
               "application/json": {
-                "schema": {
-                  "additionalProperties": true,
-                  "title": "Response Mercadopago Webhook Webhooks Payments Mercadopago Post",
-                  "type": "object"
-                }
+                "schema": {}
               }
             },
             "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
           }
         },
-        "summary": "MercadoPago payment webhook (STUB)",
+        "summary": "Stripe Webhook",
         "tags": [
           "webhooks"
         ]
