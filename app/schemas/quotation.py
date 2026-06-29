@@ -99,6 +99,18 @@ class QuotationUpdate(BaseModel):
     services: list[Any] | None = None
     products: list[Any] | None = None
     items: list[Any] | None = None
+    # Wizard progress (B2C public form). Mirror of QuotationRead §"Wizard
+    # progress" — the wizard (`web-portal/app/[locale]/cotizar/actions.ts`
+    # `updateStep*Action`) PUTs these on every step transition via the
+    # `lib/api/b2cAdapter.ts::toBackendWizardState()` mapping. The DB model
+    # (`app/models/__init__.py:103-104`) already declares these columns,
+    # the service layer (`app/services/quotation.py:96-105`) sets
+    # attributes by name from `body.model_dump(exclude_unset=True)`, so
+    # declaring them here is the only change needed to make the wizard's
+    # PUTs succeed against the `extra="forbid"` Pydantic config. Closes
+    # verify-report-T4.md §B-1 (BLOCKER).
+    wizard_step: int | None = None
+    wizard_complete: bool = False
 
 
 class QuotationRead(BaseModel):
