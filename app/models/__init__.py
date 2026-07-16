@@ -339,7 +339,27 @@ class AuditLog(Base):
 
 
 # =============================================================================
-# ProviderAvailability (scheduling)
+# Rating (provider review)
+# =============================================================================
+class Rating(Base):
+    """A B2C client's rating of a provider after service completion."""
+
+    __tablename__ = "ratings"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=_uuid)
+    auction_id: Mapped[str] = mapped_column(
+        String(36), ForeignKey("auctions.id", ondelete="CASCADE"), unique=True, index=True
+    )
+    provider_id: Mapped[str] = mapped_column(
+        String(128), ForeignKey("providers.id", ondelete="CASCADE"), index=True
+    )
+    quotation_id: Mapped[str] = mapped_column(
+        String(36), ForeignKey("quotations.id", ondelete="CASCADE"), index=True
+    )
+    score: Mapped[int] = mapped_column(nullable=False)
+    comment: Mapped[str | None] = mapped_column(Text, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=_now, nullable=False)
+
 # =============================================================================
 class ProviderAvailability(Base):
     """Provider availability for a specific date."""
@@ -368,6 +388,7 @@ __all__ = [
     "AuditLog",
     "Auction",
     "ProviderAvailability",
+    "Rating",
     "CheckoutSession",
     "InventoryCategory",
     "InventoryItem",

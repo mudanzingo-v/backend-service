@@ -6751,6 +6751,76 @@
         ]
       }
     },
+    "/api/b2c/api/b2c/auction/{auction_id}/rate": {
+      "post": {
+        "description": "Rate a provider for a completed auction (score 1-5).",
+        "operationId": "rate_auction_api_b2c_api_b2c_auction__auction_id__rate_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "auction_id",
+            "required": true,
+            "schema": {
+              "title": "Auction Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "score",
+            "required": true,
+            "schema": {
+              "title": "Score",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "comment",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Comment"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Rate Auction Api B2C Api B2C Auction  Auction Id  Rate Post",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Rate Auction",
+        "tags": [
+          "b2c:ratings"
+        ]
+      }
+    },
     "/api/b2c/api/b2c/invoice/{invoice_id}/cancel": {
       "post": {
         "description": "Cancel a STAMPED invoice via the PAC.",
