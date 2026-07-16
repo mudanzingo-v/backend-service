@@ -47,14 +47,36 @@ from app.config import settings
 from app.core.database import get_db
 from app.core.logging import get_logger
 from app.models import Auction, CheckoutSession, Payment
+from app.services import invoice as invoice_svc
 
 log = get_logger(__name__)
 
 router = APIRouter(prefix="/webhooks", tags=["webhooks"])
 
 
-# Public constants for test introspection (test code reads these).
 WEBHOOK_PATH = "/payments/stripe"
+
+
+async def _try_auto_stamp_cfdi(db: AsyncSession, payment_id: str | None) -> None:
+    """After a payment goes PAID, try to auto-create and stamp the CFDI."""
+    if payment_id is None:
+        return
+    try:
+        invoice = await invoice_svc.auto_stamp_on_payment(db, payment_id)
+        if invoice:
+            log.info(
+                "cfdi.auto_stamped",
+                extra={
+                    "payment_id": payment_id,
+                    "invoice_id": invoice.id,
+                    "status": invoice.status,
+                },
+            )
+    except Exception as exc:
+        log.warning(
+            "cfdi.auto_stamp_failed",
+            extra={"payment_id": payment_id, "error": str(exc)},
+        )
 
 
 @router.post(WEBHOOK_PATH)
@@ -63,15 +85,6 @@ async def stripe_webhook(
     stripe_signature: str | None = Header(default=None, alias="Stripe-Signature"),
     db: AsyncSession = Depends(get_db),
 ) -> JSONResponse:
-    """Stripe webhook entrypoint.
-
-    Returns:
-
-    - 200 ``{"received": true}`` on successful processing (any event
-      type, including unknown ones — Stripe treats that as success and
-      stops retrying).
-    - 400 ``{"detail": "..."}`` on missing or invalid signature.
-    """
     body = await request.body()
 
     if not stripe_signature:
@@ -100,15 +113,14 @@ async def stripe_webhook(
     )
 
     if event.type == "checkout.session.completed":
-        await _on_checkout_completed(db, event)
+        payment_id = await _on_checkout_completed(db, event)
+        await _try_auto_stamp_cfdi(db, payment_id)
     elif event.type == "payment_intent.succeeded":
-        await _on_payment_succeeded(db, event)
+        payment_id = await _on_payment_succeeded(db, event)
+        await _try_auto_stamp_cfdi(db, payment_id)
     elif event.type == "payment_intent.payment_failed":
         await _on_payment_failed(db, event)
     else:
-        # Unknown / not-subscribed event. We acknowledge so Stripe
-        # doesn't retry, but we don't touch the DB. Refund handling
-        # (`charge.refunded`) lands in a future change.
         log.info(
             "stripe.webhook.ignored",
             extra={
@@ -122,20 +134,9 @@ async def stripe_webhook(
     return JSONResponse(content={"received": True})
 
 
-# ---------------------------------------------------------------------------
-# Dispatch handlers
-# ---------------------------------------------------------------------------
-
-
 async def _lookup_session_by_stripe_id(
     db: AsyncSession, stripe_session_id: str | None
 ) -> CheckoutSession | None:
-    """Find a CheckoutSession by ``stripe_session_id`` (NOT the local PK).
-
-    Returns ``None`` if the session is not in the DB (e.g. the B2C flow
-    never finished ``select_auction``). Callers should treat that as a
-    log-and-skip case.
-    """
     if not stripe_session_id:
         return None
     stmt = select(CheckoutSession).where(
@@ -147,7 +148,6 @@ async def _lookup_session_by_stripe_id(
 async def _lookup_payment_for_session(
     db: AsyncSession, stripe_session_id: str | None
 ) -> Payment | None:
-    """Find the Payment row that references this Stripe checkout session."""
     if not stripe_session_id:
         return None
     stmt = select(Payment).where(
@@ -162,11 +162,6 @@ async def _mark_session_and_payment_paid(
     payment: Payment | None,
     event_id: str,
 ) -> bool:
-    """Idempotently mark a CheckoutSession + Payment as paid and ACCEPT
-    the auction. Returns True if a state transition happened, False
-    if the event was a duplicate or no-op.
-    """
-    # Idempotency: same event id already processed.
     if session.last_event_id == event_id:
         log.info(
             "stripe.webhook.duplicate_event",
@@ -184,41 +179,28 @@ async def _mark_session_and_payment_paid(
         )
         return False
 
-    # Payment-level idempotency: if already PAID, skip the auction transition
-    # (the previous webhook already ACCEPTed the auction).
     if payment.state == "PAID":
         log.info(
             "stripe.webhook.payment_already_paid",
-            extra={
-                "event_id": event_id,
-                "payment_id": payment.id,
-            },
+            extra={"event_id": event_id, "payment_id": payment.id},
         )
         return False
 
     payment.state = "PAID"
     payment.stripe_payment_status = "succeeded"
 
-    # Auction transition: SELECTED → ACCEPTED. Only happens once.
     auction = await db.get(Auction, session.auction_id)
     if auction is not None and auction.state == "SELECTED":
         auction.state = "ACCEPTED"
         log.info(
             "stripe.webhook.auction_accepted",
-            extra={
-                "event_id": event_id,
-                "auction_id": auction.id,
-            },
+            extra={"event_id": event_id, "auction_id": auction.id},
         )
     return True
 
 
-async def _on_checkout_completed(db: AsyncSession, event: Any) -> None:
-    """``checkout.session.completed`` handler.
-
-    Fires when the customer finishes the Stripe-hosted checkout. The
-    ``data.object.id`` is the Stripe session id (``cs_test_...``).
-    """
+async def _on_checkout_completed(db: AsyncSession, event: Any) -> str | None:
+    """Handler for checkout.session.completed. Returns payment_id if paid."""
     stripe_session_id: str | None = event.data.object.get("id")
     session = await _lookup_session_by_stripe_id(db, stripe_session_id)
     if session is None:
@@ -226,19 +208,14 @@ async def _on_checkout_completed(db: AsyncSession, event: Any) -> None:
             "stripe.webhook.completed.unknown_session",
             extra={"stripe_session_id": stripe_session_id},
         )
-        return
+        return None
     payment = await _lookup_payment_for_session(db, stripe_session_id)
     await _mark_session_and_payment_paid(db, session, payment, event.id)
+    return payment.id if payment else None
 
 
-async def _on_payment_succeeded(db: AsyncSession, event: Any) -> None:
-    """``payment_intent.succeeded`` handler.
-
-    Fires for synchronous card payments, sometimes before
-    ``checkout.session.completed``. The ``data.object`` is a
-    PaymentIntent; the parent checkout session id is in
-    ``data.object.checkout_session``.
-    """
+async def _on_payment_succeeded(db: AsyncSession, event: Any) -> str | None:
+    """Handler for payment_intent.succeeded. Returns payment_id if paid."""
     pi = event.data.object
     stripe_session_id: str | None = (
         pi.get("checkout_session") if isinstance(pi, dict) else None
@@ -249,18 +226,14 @@ async def _on_payment_succeeded(db: AsyncSession, event: Any) -> None:
             "stripe.webhook.intent_succeeded.unknown_session",
             extra={"stripe_session_id": stripe_session_id},
         )
-        return
+        return None
     payment = await _lookup_payment_for_session(db, stripe_session_id)
     await _mark_session_and_payment_paid(db, session, payment, event.id)
+    return payment.id if payment else None
 
 
 async def _on_payment_failed(db: AsyncSession, event: Any) -> None:
-    """``payment_intent.payment_failed`` handler.
-
-    Marks the Payment FAILED. Does NOT touch the Auction state — it
-    stays SELECTED so admin can manually cancel (or the client can retry).
-    Idempotent on duplicate event id.
-    """
+    """Handler for payment_intent.payment_failed."""
     pi = event.data.object
     stripe_session_id: str | None = (
         pi.get("checkout_session") if isinstance(pi, dict) else None
@@ -287,8 +260,5 @@ async def _on_payment_failed(db: AsyncSession, event: Any) -> None:
         payment.stripe_payment_status = "failed"
         log.info(
             "stripe.webhook.payment_failed",
-            extra={
-                "event_id": event.id,
-                "payment_id": payment.id,
-            },
+            extra={"event_id": event.id, "payment_id": payment.id},
         )

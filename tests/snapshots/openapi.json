@@ -7627,7 +7627,6 @@
     },
     "/webhooks/payments/stripe": {
       "post": {
-        "description": "Stripe webhook entrypoint.\n\nReturns:\n\n- 200 ``{\"received\": true}`` on successful processing (any event\n  type, including unknown ones \u2014 Stripe treats that as success and\n  stops retrying).\n- 400 ``{\"detail\": \"...\"}`` on missing or invalid signature.",
         "operationId": "stripe_webhook_webhooks_payments_stripe_post",
         "parameters": [
           {
