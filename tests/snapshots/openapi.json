@@ -6323,6 +6323,79 @@
         ]
       }
     },
+    "/api/admin/search/quotations": {
+      "get": {
+        "description": "Full-text search across quotations.",
+        "operationId": "search_q_api_admin_search_quotations_get",
+        "parameters": [
+          {
+            "description": "Search query (name, phone, email, address, ID)",
+            "in": "query",
+            "name": "q",
+            "required": false,
+            "schema": {
+              "default": "",
+              "description": "Search query (name, phone, email, address, ID)",
+              "title": "Q",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 50,
+              "maximum": 200,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "offset",
+            "required": false,
+            "schema": {
+              "default": 0,
+              "minimum": 0,
+              "title": "Offset",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/QuotationRead"
+                  },
+                  "title": "Response Search Q Api Admin Search Quotations Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Search Q",
+        "tags": [
+          "admin:search"
+        ]
+      }
+    },
     "/api/admin/service": {
       "get": {
         "operationId": "_list_api_admin_service_get",
