@@ -476,6 +476,30 @@ class Payment(Base):
         return f"<Payment {self.id} type={self.type} state={self.state}>"
 
 
+# =============================================================================
+# ProviderDocument (KYC)
+# =============================================================================
+class ProviderDocument(Base):
+    """A KYC document uploaded by a provider for identity verification.
+
+    Doc types: ine, rfc_constancia, license, insurance, bank_statement
+    """
+
+    __tablename__ = "provider_documents"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=_uuid)
+    provider_id: Mapped[str] = mapped_column(
+        String(128), ForeignKey("providers.id", ondelete="CASCADE"), index=True
+    )
+    doc_type: Mapped[str] = mapped_column(String(32), nullable=False)
+    file_path: Mapped[str] = mapped_column(Text, nullable=False)
+    original_name: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    uploaded_at: Mapped[datetime] = mapped_column(DateTime, default=_now, nullable=False)
+
+    def __repr__(self) -> str:
+        return f"<ProviderDocument {self.id} type={self.doc_type} provider={self.provider_id}>"
+
+
 __all__ = [
     "Quotation",
     "Auction",
@@ -488,4 +512,5 @@ __all__ = [
     "Truck",
     "Saler",
     "Payment",
+    "ProviderDocument",
 ]
