@@ -350,12 +350,24 @@ class InventoryItem(Base):
 class Provider(Base):
     __tablename__ = "providers"
 
-    id: Mapped[str] = mapped_column(String(128), primary_key=True)  # Cognito sub
-    email: Mapped[str | None] = mapped_column(String(255), nullable=True, index=True)
+    id: Mapped[str] = mapped_column(String(128), primary_key=True)  # UUID or Cognito sub
+    email: Mapped[str | None] = mapped_column(String(255), nullable=True, index=True, unique=True)
     name: Mapped[str | None] = mapped_column(String(255), nullable=True)
     phone: Mapped[str | None] = mapped_column(String(64), nullable=True)
     rfc: Mapped[str | None] = mapped_column(String(32), nullable=True)
+    company_name: Mapped[str | None] = mapped_column(String(255), nullable=True)
     address: Mapped[str | None] = mapped_column(Text, nullable=True)
+
+    # Auth
+    password_hash: Mapped[str | None] = mapped_column(String(256), nullable=True)
+    verification_token: Mapped[str | None] = mapped_column(String(512), nullable=True)
+    verified_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+
+    # KYC lifecycle
+    kyc_status: Mapped[str] = mapped_column(
+        String(32), default="NOT_STARTED", nullable=False, index=True
+    )
+
     active: Mapped[bool] = mapped_column(Boolean, default=True)
 
     created_at: Mapped[datetime] = mapped_column(DateTime, default=_now, nullable=False)
