@@ -6578,7 +6578,7 @@
     },
     "/api/admin/stats": {
       "get": {
-        "description": "Returns the row count of every entity in a single query.\n\nUsed by the backoffice's dashboard cards. Single round-trip so the\ndashboard loads fast even with a large DB.",
+        "description": "Returns the row count of every entity in a single query.",
         "operationId": "get_stats_api_admin_stats_get",
         "responses": {
           "200": {
@@ -6593,6 +6593,30 @@
           }
         },
         "summary": "Aggregate counts for the admin dashboard",
+        "tags": [
+          "admin:stats"
+        ]
+      }
+    },
+    "/api/admin/stats/reports": {
+      "get": {
+        "description": "Returns operational metrics: revenue, acceptance rate, etc.",
+        "operationId": "get_reports_api_admin_stats_reports_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Get Reports Api Admin Stats Reports Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Operational reports for the admin dashboard",
         "tags": [
           "admin:stats"
         ]
