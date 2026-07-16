@@ -1280,6 +1280,59 @@
         "title": "PaymentRead",
         "type": "object"
       },
+      "PaymentRefundBody": {
+        "description": "Request body for refunding a payment.",
+        "properties": {
+          "amount_cents": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Amount Cents"
+          },
+          "reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reason"
+          }
+        },
+        "title": "PaymentRefundBody",
+        "type": "object"
+      },
+      "PaymentRefundResponse": {
+        "description": "Response after a refund is issued.",
+        "properties": {
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "message": {
+            "title": "Message",
+            "type": "string"
+          },
+          "state": {
+            "title": "State",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "state",
+          "message"
+        ],
+        "title": "PaymentRefundResponse",
+        "type": "object"
+      },
       "ProductCreate": {
         "additionalProperties": false,
         "properties": {
@@ -4406,6 +4459,64 @@
           }
         ],
         "summary": "Get a single payment",
+        "tags": [
+          "admin:payments"
+        ]
+      }
+    },
+    "/api/admin/payment/{payment_id}/refund": {
+      "post": {
+        "description": "Issue a full or partial refund for a PAID payment.",
+        "operationId": "refund_payment_api_admin_payment__payment_id__refund_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "payment_id",
+            "required": true,
+            "schema": {
+              "title": "Payment Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PaymentRefundBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaymentRefundResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Refund a payment (admin)",
         "tags": [
           "admin:payments"
         ]

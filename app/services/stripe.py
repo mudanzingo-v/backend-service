@@ -162,3 +162,56 @@ async def retrieve_checkout_session(session_id: str) -> dict[str, Any]:
         "amount_total": session.amount_total,
         "currency": session.currency,
     }
+
+
+async def refund_payment(
+    payment_intent_id: str,
+    amount_cents: int | None = None,
+    reason: str | None = None,
+) -> dict[str, Any]:
+    """Issue a refund for a Stripe PaymentIntent.
+
+    In mock mode, returns a synthetic refund object. In real mode, calls
+    ``stripe.Refund.create``.
+
+    Args:
+        payment_intent_id: The Stripe PaymentIntent ID (``pi_...``).
+        amount_cents: Amount to refund in cents. If None, full amount.
+        reason: Optional reason for the refund.
+    """
+    if _is_mock_mode():
+        refund_id = f"re_mock_{uuid.uuid4().hex[:12]}"
+        log.info(
+            "stripe.refund.mock",
+            extra={"payment_intent_id": payment_intent_id, "amount_cents": amount_cents},
+        )
+        return {
+            "id": refund_id,
+            "payment_intent": payment_intent_id,
+            "amount": amount_cents,
+            "status": "succeeded",
+            "currency": "mxn",
+        }
+
+    params: dict[str, Any] = {"payment_intent": payment_intent_id}
+    if amount_cents is not None:
+        params["amount"] = amount_cents
+    if reason is not None:
+        params["reason"] = reason
+
+    try:
+        refund = await asyncio.to_thread(stripe.Refund.create, **params)
+    except (stripe.error.StripeError, stripe.error.InvalidRequestError) as exc:
+        log.error(
+            "stripe.refund.error",
+            extra={"payment_intent_id": payment_intent_id, "stripe_error": str(exc)},
+        )
+        raise StripeError(str(exc)) from exc
+
+    return {
+        "id": refund.id,
+        "payment_intent": refund.payment_intent,
+        "amount": refund.amount,
+        "status": refund.status,
+        "currency": refund.currency,
+    }

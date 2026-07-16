@@ -9,6 +9,8 @@ from app.core.auth import current_admin
 from app.core.database import get_db
 from app.core.exceptions import NotFoundError
 from app.core.pagination import paginate, set_pagination_headers
+from app.schemas.payment import PaymentRefundBody, PaymentRefundResponse
+from app.services import refund as refund_svc
 from app.models import Auction, Payment
 from app.schemas import (
     PaymentCreateDeposit,
@@ -127,3 +129,28 @@ async def get_payment(
     if p is None:
         raise NotFoundError(f"Payment {payment_id} not found")
     return PaymentRead.model_validate(p)
+    
+    
+@top_payment_router.post(
+    "/{payment_id}/refund",
+    response_model=PaymentRefundResponse,
+    summary="Refund a payment (admin)",
+)
+async def refund_payment(
+    payment_id: str,
+    body: PaymentRefundBody,
+    db: AsyncSession = Depends(get_db),
+    _admin: object = Depends(current_admin),
+) -> PaymentRefundResponse:
+    """Issue a full or partial refund for a PAID payment."""
+    payment = await refund_svc.refund_payment(
+        db,
+        payment_id=payment_id,
+        amount_cents=body.amount_cents,
+        reason=body.reason,
+    )
+    return PaymentRefundResponse(
+        id=payment.id,
+        state=payment.state,
+        message=f"Payment {payment.state.lower()}",
+    )

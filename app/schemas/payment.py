@@ -39,6 +39,21 @@ class PaymentRead(BaseModel):
     updated_at: datetime
 
 
+class PaymentRefundBody(BaseModel):
+    """Request body for refunding a payment."""
+
+    amount_cents: int | None = None
+    reason: str | None = None
+
+
+class PaymentRefundResponse(BaseModel):
+    """Response after a refund is issued."""
+
+    id: str
+    state: str
+    message: str
+
+
 class LocationRead(BaseModel):
     """Mirrors the Copomex response (passthrough)."""
 

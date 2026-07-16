@@ -48,6 +48,7 @@ from app.core.database import get_db
 from app.core.logging import get_logger
 from app.models import Auction, CheckoutSession, Payment
 from app.services import invoice as invoice_svc
+from app.services import refund as refund_svc
 
 log = get_logger(__name__)
 
@@ -120,6 +121,8 @@ async def stripe_webhook(
         await _try_auto_stamp_cfdi(db, payment_id)
     elif event.type == "payment_intent.payment_failed":
         await _on_payment_failed(db, event)
+    elif event.type == "charge.refunded":
+        await _on_charge_refunded(db, event)
     else:
         log.info(
             "stripe.webhook.ignored",
@@ -261,4 +264,26 @@ async def _on_payment_failed(db: AsyncSession, event: Any) -> None:
         log.info(
             "stripe.webhook.payment_failed",
             extra={"event_id": event.id, "payment_id": payment.id},
+        )
+
+
+async def _on_charge_refunded(db: AsyncSession, event: Any) -> None:
+    """Handler for ``charge.refunded`` events."""
+    charge = event.data.object
+    payment_intent_id: str | None = charge.get("payment_intent") if isinstance(charge, dict) else None
+    refund_status: str | None = charge.get("status") if isinstance(charge, dict) else None
+
+    if not payment_intent_id:
+        log.warning("refund.webhook.missing_payment_intent", extra={"event_id": event.id})
+        return
+
+    payment = await refund_svc.process_refund_webhook(db, payment_intent_id, refund_status or "succeeded")
+    if payment:
+        log.info(
+            "refund.webhook.processed",
+            extra={
+                "event_id": event.id,
+                "payment_id": payment.id,
+                "state": payment.state,
+            },
         )
