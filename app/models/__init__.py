@@ -430,6 +430,55 @@ class Saler(Base):
 
 
 # =============================================================================
+# Invoice (CFDI 4.0)
+# =============================================================================
+class Invoice(Base):
+    """A CFDI 4.0 invoice issued for a completed payment.
+
+    Status lifecycle:
+        PENDING → STAMPED | FAILED
+        PENDING → CANCELLED (if the payment is refunded before stamping)
+    """
+
+    __tablename__ = "invoices"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=_uuid)
+    payment_id: Mapped[str] = mapped_column(
+        String(36), ForeignKey("payments.id", ondelete="CASCADE"), index=True
+    )
+    quotation_id: Mapped[str] = mapped_column(
+        String(36), ForeignKey("quotations.id", ondelete="CASCADE"), index=True
+    )
+
+    # SAT fields
+    rfc_emisor: Mapped[str] = mapped_column(String(13), nullable=False)
+    rfc_receptor: Mapped[str] = mapped_column(String(13), nullable=False)
+    cfdi_use: Mapped[str] = mapped_column(String(8), default="G03", nullable=False)
+    payment_method: Mapped[str] = mapped_column(String(8), default="PPD", nullable=False)
+
+    # Amounts
+    subtotal: Mapped[Decimal] = mapped_column(Numeric(12, 2), default=Decimal("0.00"))
+    iva: Mapped[Decimal] = mapped_column(Numeric(12, 2), default=Decimal("0.00"))
+    total: Mapped[Decimal] = mapped_column(Numeric(12, 2), default=Decimal("0.00"))
+
+    # PAC result
+    status: Mapped[str] = mapped_column(String(32), default="PENDING", index=True)
+    cfdi_uuid: Mapped[str | None] = mapped_column(String(64), nullable=True, unique=True)
+    pdf_url: Mapped[str | None] = mapped_column(Text, nullable=True)
+    xml_url: Mapped[str | None] = mapped_column(Text, nullable=True)
+    stamped_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    error_message: Mapped[str | None] = mapped_column(Text, nullable=True)
+
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=_now, nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime, default=_now, onupdate=_now, nullable=False
+    )
+
+    def __repr__(self) -> str:
+        return f"<Invoice {self.id} status={self.status} uuid={self.cfdi_uuid}>"
+
+
+# =============================================================================
 # Payment
 # =============================================================================
 class Payment(Base):
@@ -513,4 +562,5 @@ __all__ = [
     "Saler",
     "Payment",
     "ProviderDocument",
+    "Invoice",
 ]

@@ -827,6 +827,220 @@
         "title": "InventoryItemUpdate",
         "type": "object"
       },
+      "InvoiceCaptureBody": {
+        "description": "Request body for invoice capture.",
+        "properties": {
+          "cfdi_use": {
+            "default": "G03",
+            "description": "Uso del CFDI: G03 (servicios profesionales), P01 (honorarios)",
+            "maxLength": 4,
+            "minLength": 3,
+            "title": "Cfdi Use",
+            "type": "string"
+          },
+          "rfc": {
+            "description": "RFC del cliente (receptor). Ej: XAXX010101000",
+            "maxLength": 13,
+            "minLength": 12,
+            "title": "Rfc",
+            "type": "string"
+          }
+        },
+        "required": [
+          "rfc"
+        ],
+        "title": "InvoiceCaptureBody",
+        "type": "object"
+      },
+      "InvoiceRead": {
+        "description": "Response shape for an invoice.",
+        "properties": {
+          "cfdi_use": {
+            "title": "Cfdi Use",
+            "type": "string"
+          },
+          "cfdi_uuid": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cfdi Uuid"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "error_message": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error Message"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "iva": {
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Iva",
+            "type": "string"
+          },
+          "payment_id": {
+            "title": "Payment Id",
+            "type": "string"
+          },
+          "pdf_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pdf Url"
+          },
+          "quotation_id": {
+            "title": "Quotation Id",
+            "type": "string"
+          },
+          "rfc_emisor": {
+            "title": "Rfc Emisor",
+            "type": "string"
+          },
+          "rfc_receptor": {
+            "title": "Rfc Receptor",
+            "type": "string"
+          },
+          "stamped_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Stamped At"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          },
+          "subtotal": {
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Subtotal",
+            "type": "string"
+          },
+          "total": {
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Total",
+            "type": "string"
+          },
+          "xml_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Xml Url"
+          }
+        },
+        "required": [
+          "id",
+          "payment_id",
+          "quotation_id",
+          "rfc_emisor",
+          "rfc_receptor",
+          "cfdi_use",
+          "subtotal",
+          "iva",
+          "total",
+          "status",
+          "cfdi_uuid",
+          "pdf_url",
+          "xml_url",
+          "stamped_at",
+          "error_message",
+          "created_at"
+        ],
+        "title": "InvoiceRead",
+        "type": "object"
+      },
+      "InvoiceStampResponse": {
+        "description": "Response after stamping an invoice.",
+        "properties": {
+          "cfdi_uuid": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cfdi Uuid"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "message": {
+            "default": "Invoice stamped successfully",
+            "title": "Message",
+            "type": "string"
+          },
+          "pdf_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pdf Url"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          },
+          "xml_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Xml Url"
+          }
+        },
+        "required": [
+          "id",
+          "status",
+          "cfdi_uuid",
+          "pdf_url",
+          "xml_url"
+        ],
+        "title": "InvoiceStampResponse",
+        "type": "object"
+      },
       "KycApproveBody": {
         "description": "Request body for ``POST /api/admin/provider/{id}/kyc/approve``.",
         "properties": {
@@ -6399,6 +6613,145 @@
         "summary": "Verify",
         "tags": [
           "provider-auth"
+        ]
+      }
+    },
+    "/api/b2c/api/b2c/invoice/{invoice_id}/cancel": {
+      "post": {
+        "description": "Cancel a STAMPED invoice via the PAC.",
+        "operationId": "cancel_invoice_api_b2c_api_b2c_invoice__invoice_id__cancel_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "invoice_id",
+            "required": true,
+            "schema": {
+              "title": "Invoice Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InvoiceStampResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Cancel a STAMPED invoice",
+        "tags": [
+          "b2c:invoices"
+        ]
+      }
+    },
+    "/api/b2c/api/b2c/invoice/{invoice_id}/stamp": {
+      "post": {
+        "description": "Send a PENDING invoice to the PAC for stamping.",
+        "operationId": "stamp_invoice_api_b2c_api_b2c_invoice__invoice_id__stamp_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "invoice_id",
+            "required": true,
+            "schema": {
+              "title": "Invoice Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InvoiceStampResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Stamp a PENDING invoice via PAC",
+        "tags": [
+          "b2c:invoices"
+        ]
+      }
+    },
+    "/api/b2c/api/b2c/quotation/{quotation_id}/invoice": {
+      "post": {
+        "description": "Capture the client's RFC and create a PENDING invoice for a paid quotation.",
+        "operationId": "capture_invoice_api_b2c_api_b2c_quotation__quotation_id__invoice_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "quotation_id",
+            "required": true,
+            "schema": {
+              "title": "Quotation Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/InvoiceCaptureBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InvoiceRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Capture RFC and create invoice (B2C)",
+        "tags": [
+          "b2c:invoices"
         ]
       }
     },
