@@ -133,6 +133,7 @@ async def register_provider(
     await db.refresh(provider)
 
     log.info("Provider registered: id=%s email=%s", provider.id, email)
+
     return provider
 
 

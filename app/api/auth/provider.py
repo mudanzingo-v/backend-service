@@ -10,6 +10,7 @@ from __future__ import annotations
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.config import settings
 from app.core.database import get_db
 from app.core.logging import get_logger
 from app.schemas.provider_auth import (
@@ -19,6 +20,7 @@ from app.schemas.provider_auth import (
     ProviderRegisterResponse,
     VerifyEmailResponse,
 )
+from app.services.email import send_verification_email
 from app.services.provider_auth import (
     login_provider,
     register_provider,
@@ -47,6 +49,12 @@ async def register(
         postal_code=body.postal_code,
         password=body.password,
     )
+    # Send verification email (best-effort, non-blocking)
+    if provider.verification_token:
+        frontend_url = settings.b2c_frontend_url
+        verify_url = f"{frontend_url}/api/auth/provider/verify-email?token={provider.verification_token}"
+        await send_verification_email(body.email, verify_url)
+
     return ProviderRegisterResponse(
         id=provider.id,
         email=provider.email or "",

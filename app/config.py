@@ -56,13 +56,21 @@ class Settings(BaseSettings):
     stripe_webhook_secret: str = ""
     stripe_api_version: str = "2024-06-20"
 
+    # Email (SMTP)
+    smtp_host: str = "localhost"
+    smtp_port: int = 1025
+    smtp_user: str = ""
+    smtp_password: str = ""
+    smtp_from: str = "noreply@mobbit.mx"
+    smtp_use_tls: bool = False
+    
     # Pricing model
     pricing_mobbit_fee: float = 0.05
     pricing_iva: float = 0.16
     pricing_transaction_fee: float = 0.05
     pricing_cash_on_delivery_provider_fee: float = 0.85
     pricing_cash_on_delivery_mobbit_fee: float = 0.15
-
+    
     # CORS
     cors_allow_origins: str = "http://localhost:3000,http://localhost:5173"
 
