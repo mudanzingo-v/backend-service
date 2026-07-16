@@ -48,3 +48,4 @@ alembic/versions/__pycache__/
 tests/.pytest_cache/
 tests/__pycache__/
 tests/coverage/
+mobbit-backend-service_data/
