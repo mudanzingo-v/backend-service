@@ -25,6 +25,10 @@ dependencies = [
   "orjson>=3.10.0",
   # Auth
   "bcrypt>=4.0.0",
+  # Notifications (SMS)
+  "twilio>=9.0.0,<10.0.0",
+  # Payments (Conekta — SPEI / OXXO)
+  "conekta>=7.0.0,<8.0.0",
 ]
 
 [project.optional-dependencies]

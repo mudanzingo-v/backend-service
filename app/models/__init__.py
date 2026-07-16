@@ -301,6 +301,8 @@ class Payment(Base):
     stripe_payment_intent_id: Mapped[str | None] = mapped_column(String(128), nullable=True, index=True)
     stripe_checkout_session_id: Mapped[str | None] = mapped_column(String(128), nullable=True)
     stripe_payment_status: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    conekta_order_id: Mapped[str | None] = mapped_column(String(128), nullable=True, index=True)
+    conekta_payment_method: Mapped[str | None] = mapped_column(String(32), nullable=True)
     raw_payload: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=_now, nullable=False)
     updated_at: Mapped[datetime] = mapped_column(DateTime, default=_now, onupdate=_now, nullable=False)

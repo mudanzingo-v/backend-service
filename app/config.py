@@ -63,6 +63,19 @@ class Settings(BaseSettings):
     smtp_password: str = ""
     smtp_from: str = "noreply@mobbit.mx"
     smtp_use_tls: bool = False
+
+    # SMS (Twilio)
+    # Empty twilio_account_sid + is_local=True triggers mock mode in app/services/sms.py
+    twilio_account_sid: str = ""
+    twilio_auth_token: str = ""
+    twilio_from_number: str = ""
+    # Feature flag: disable SMS per-environment without touching code
+    sms_provider_assignment_enabled: bool = True
+
+    # Conekta (SPEI / OXXO payments)
+    # Empty conekta_api_key + is_local=True triggers mock mode in app/services/conekta.py
+    conekta_api_key: str = ""
+    conekta_webhook_secret: str = ""
     
     # Pricing model
     pricing_mobbit_fee: float = 0.05

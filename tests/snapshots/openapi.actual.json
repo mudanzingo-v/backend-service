@@ -316,6 +316,12 @@
           "id_auction": {
             "title": "Id Auction",
             "type": "string"
+          },
+          "payment_method": {
+            "default": "card",
+            "description": "Payment method: \"card\" (Stripe), \"bank_transfer\" (SPEI), or \"cash\" (OXXO)",
+            "title": "Payment Method",
+            "type": "string"
           }
         },
         "required": [
@@ -4417,6 +4423,71 @@
         ]
       }
     },
+    "/api/admin/payment": {
+      "get": {
+        "operationId": "list_all_payments_api_admin_payment_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 100,
+              "maximum": 500,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "offset",
+            "required": false,
+            "schema": {
+              "default": 0,
+              "minimum": 0,
+              "title": "Offset",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/PaymentRead"
+                  },
+                  "title": "Response List All Payments Api Admin Payment Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "List all payments",
+        "tags": [
+          "admin:payments"
+        ]
+      }
+    },
     "/api/admin/payment/{payment_id}": {
       "get": {
         "operationId": "get_payment_api_admin_payment__payment_id__get",
@@ -8058,6 +8129,30 @@
         "summary": "Health",
         "tags": [
           "health"
+        ]
+      }
+    },
+    "/webhooks/payments/conekta": {
+      "post": {
+        "description": "Receive a Conekta webhook event, validate, and update DB state.",
+        "operationId": "conekta_webhook_webhooks_payments_conekta_post",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Conekta Webhook Webhooks Payments Conekta Post",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Conekta Webhook",
+        "tags": [
+          "webhooks"
         ]
       }
     },

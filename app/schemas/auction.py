@@ -86,6 +86,10 @@ class AuctionSelectBody(BaseModel):
 
     id_auction: str
     cash_on_delivery: str = Field(..., description='"true" or "false"')
+    payment_method: str = Field(
+        default="card",
+        description='Payment method: "card" (Stripe), "bank_transfer" (SPEI), or "cash" (OXXO)',
+    )
 
 
 class AuctionRead(BaseModel):

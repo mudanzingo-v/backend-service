@@ -17,7 +17,8 @@ from app.api.admin.router import admin_router
 from app.api.b2c.router import b2c_router
 from app.api.provider import provider_router
 from app.api.auth.provider import router as provider_auth_router
-from app.api.webhooks.stripe import router as webhook_router
+from app.api.webhooks.stripe import router as stripe_webhook_router
+from app.api.webhooks.conekta import router as conekta_webhook_router
 from app.config import settings
 from app.core.exceptions import register_exception_handlers
 from app.core.logging import get_logger, setup_logging
@@ -88,7 +89,8 @@ register_exception_handlers(app)
 app.include_router(b2c_router)
 app.include_router(admin_router)
 app.include_router(provider_router)
-app.include_router(webhook_router)
+app.include_router(stripe_webhook_router)
+app.include_router(conekta_webhook_router)
 app.include_router(provider_auth_router)
 
 

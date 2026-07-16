@@ -111,7 +111,29 @@ async def list_payments(
     return [PaymentRead.model_validate(r) for r in items]
 
 
-# Single payment by id
+# All payments list + single payment
+payment_list_router = APIRouter(prefix="/payment", tags=["admin:payments"])
+
+
+@payment_list_router.get(
+    "",
+    response_model=list[PaymentRead],
+    summary="List all payments",
+)
+async def list_all_payments(
+    limit: int = Query(100, ge=1, le=500),
+    offset: int = Query(0, ge=0),
+    response: Response = None,
+    db: AsyncSession = Depends(get_db),
+    _admin: object = Depends(current_admin),
+):
+    stmt = select(Payment).order_by(Payment.created_at.desc())
+    items, total = await paginate(db, stmt, limit, offset)
+    if response is not None:
+        set_pagination_headers(response, total=total, limit=limit, offset=offset)
+    return [PaymentRead.model_validate(r) for r in items]
+
+
 top_payment_router = APIRouter(prefix="/payment", tags=["admin:payments"])
 
 

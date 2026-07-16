@@ -376,7 +376,10 @@ async def select_auction(
 ) -> dict[str, Any]:
     """
     B2C client picks one auction. The chosen auction goes to `SELECTED`,
-    the rest to `REJECTED`. Then we create a Stripe Checkout Session.
+        the rest to `REJECTED`. Then we create a payment session:
+        - ``payment_method="card"`` (default) → Stripe Checkout Session
+        - ``payment_method="bank_transfer"`` → Conekta HostedPayment (SPEI)
+        - ``payment_method="cash"`` → Conekta HostedPayment (OXXO)
     """
     quotation = await db.get(Quotation, quotation_id)
     if quotation is None:
@@ -409,9 +412,7 @@ async def select_auction(
         selected.cash_on_delivery_provider = breakdown.cash_on_delivery_provider
         selected.cash_on_delivery_mobbit = breakdown.cash_on_delivery_mobbit
 
-    # Stripe Checkout Session — amount in cents per Stripe convention.
-    # We pass the auction's `total` (a Decimal) converted to int cents
-    # so the Stripe API receives a clean integer (no float rounding).
+    # Amount in cents per Stripe/Conekta convention.
     amount_cents = int(
         (Decimal(selected.total) * 100).quantize(Decimal("1"))
     ) if not cash_on_delivery else int(
@@ -422,55 +423,105 @@ async def select_auction(
         * 100
     )
 
-    checkout_session = await stripe.create_checkout_session(
+    payment_method = getattr(body, "payment_method", "card")
+
+    if payment_method == "card":
+        # ---- Stripe Checkout (default) ----
+        checkout_session = await stripe.create_checkout_session(
+            auction_id=selected.id,
+            provider_id=selected.provider_id,
+            amount_cents=amount_cents,
+            currency="mxn",
+            success_url=f"{settings.b2c_frontend_url}/payment/success?session_id={{CHECKOUT_SESSION_ID}}",
+            cancel_url=f"{settings.b2c_frontend_url}/payment/cancel?session_id={{CHECKOUT_SESSION_ID}}",
+            metadata={
+                "auction_id": selected.id,
+                "quotation_id": quotation.id,
+            },
+        )
+
+        session = CheckoutSession(
+            auction_id=selected.id,
+            stripe_session_id=checkout_session.get("id"),
+            url=checkout_session.get("url"),
+            status=checkout_session.get("status"),
+            payment_status=checkout_session.get("payment_status"),
+            amount_total=checkout_session.get("amount_total"),
+            currency=checkout_session.get("currency", "mxn"),
+        )
+        db.add(session)
+
+        payment = Payment(
+            quotation_id=quotation.id,
+            auction_id=selected.id,
+            type="STRIPE",
+            state=STATE_PENDING,
+            amount=Decimal(selected.total) if not cash_on_delivery else (
+                Decimal(selected.cash_on_delivery_mobbit or 0)
+                + Decimal(selected.cash_on_delivery_provider or 0)
+            ),
+            currency="MXN",
+            stripe_checkout_session_id=session.stripe_session_id,
+        )
+        db.add(payment)
+
+        await db.commit()
+        await db.refresh(session)
+        await db.refresh(payment)
+
+        return {
+            "session_id": session.id,
+            "stripe_session_id": session.stripe_session_id,
+            "url": session.url,
+            "status": session.status,
+            "payment_status": session.payment_status,
+            "amount_total": session.amount_total,
+            "currency": session.currency,
+            "payment_id": payment.id,
+            "payment_method": "card",
+        }
+
+        # ---- Conekta HostedPayment (SPEI / OXXO) ----
+        from app.services.conekta import create_order as conekta_create_order
+
+        conekta_order = await conekta_create_order(
         auction_id=selected.id,
-        provider_id=selected.provider_id,
+        customer_name=quotation.client_name or "Cliente",
+        customer_email=quotation.client_email or "",
+        customer_phone=quotation.client_phone or None,
         amount_cents=amount_cents,
-        currency="mxn",
-        success_url=f"{settings.b2c_frontend_url}/payment/success?session_id={{CHECKOUT_SESSION_ID}}",
-        cancel_url=f"{settings.b2c_frontend_url}/payment/cancel?session_id={{CHECKOUT_SESSION_ID}}",
+        payment_methods=[payment_method],  # type: ignore
+        success_url=f"{settings.b2c_frontend_url}/payment/success?order_id={{CHECKOUT_SESSION_ID}}",
+        failure_url=f"{settings.b2c_frontend_url}/payment/cancel?order_id={{CHECKOUT_SESSION_ID}}",
         metadata={
             "auction_id": selected.id,
             "quotation_id": quotation.id,
         },
-    )
+        )
 
-    session = CheckoutSession(
-        auction_id=selected.id,
-        stripe_session_id=checkout_session.get("id"),
-        url=checkout_session.get("url"),
-        status=checkout_session.get("status"),
-        payment_status=checkout_session.get("payment_status"),
-        amount_total=checkout_session.get("amount_total"),
-        currency=checkout_session.get("currency", "mxn"),
-    )
-    db.add(session)
-
-    payment = Payment(
+        payment = Payment(
         quotation_id=quotation.id,
         auction_id=selected.id,
-        type="STRIPE",
+        type="CONEKTA",
         state=STATE_PENDING,
         amount=Decimal(selected.total) if not cash_on_delivery else (
             Decimal(selected.cash_on_delivery_mobbit or 0)
             + Decimal(selected.cash_on_delivery_provider or 0)
         ),
         currency="MXN",
-        stripe_checkout_session_id=session.stripe_session_id,
-    )
-    db.add(payment)
+        conekta_order_id=conekta_order.get("id"),
+        conekta_payment_method=payment_method,
+        )
+        db.add(payment)
 
-    await db.commit()
-    await db.refresh(session)
-    await db.refresh(payment)
+        await db.commit()
+        await db.refresh(payment)
 
-    return {
-        "session_id": session.id,
-        "stripe_session_id": session.stripe_session_id,
-        "url": session.url,
-        "status": session.status,
-        "payment_status": session.payment_status,
-        "amount_total": session.amount_total,
-        "currency": session.currency,
+        return {
         "payment_id": payment.id,
-    }
+        "conekta_order_id": conekta_order.get("id"),
+        "url": conekta_order["checkout"]["url"],
+        "payment_method": payment_method,
+        "amount_total": amount_cents,
+        "currency": "MXN",
+        }

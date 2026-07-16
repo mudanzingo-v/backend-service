@@ -199,4 +199,13 @@ async def assign_provider(
     auction = await auction_svc.admin_assign_provider(
         db, quotation_id, provider_id, body
     )
+
+    # Fire-and-forget SMS notification (runs in background, never blocks the response)
+    if p.phone:
+        from app.services.sms import send_provider_assignment_sms
+        import asyncio
+        asyncio.ensure_future(
+send_provider_assignment_sms(p.phone, p.name or "transportista")
+        )
+
     return AuctionRead.model_validate(auction)
