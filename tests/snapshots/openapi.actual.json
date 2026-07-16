@@ -7652,6 +7652,164 @@
         ]
       }
     },
+    "/api/provider/availability": {
+      "get": {
+        "description": "Get availability for a date range.",
+        "operationId": "get_availability_api_provider_availability_get",
+        "parameters": [
+          {
+            "description": "Start date YYYY-MM-DD",
+            "in": "query",
+            "name": "start_date",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Start date YYYY-MM-DD",
+              "title": "Start Date"
+            }
+          },
+          {
+            "description": "End date YYYY-MM-DD",
+            "in": "query",
+            "name": "end_date",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "End date YYYY-MM-DD",
+              "title": "End Date"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "additionalProperties": true,
+                    "type": "object"
+                  },
+                  "title": "Response Get Availability Api Provider Availability Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Get Availability",
+        "tags": [
+          "provider:availability"
+        ]
+      },
+      "post": {
+        "description": "Set availability for a specific date.",
+        "operationId": "set_availability_api_provider_availability_post",
+        "parameters": [
+          {
+            "description": "Date in YYYY-MM-DD format",
+            "in": "query",
+            "name": "date",
+            "required": true,
+            "schema": {
+              "description": "Date in YYYY-MM-DD format",
+              "title": "Date",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "available",
+            "required": false,
+            "schema": {
+              "default": true,
+              "title": "Available",
+              "type": "boolean"
+            }
+          },
+          {
+            "description": "Comma-separated time slots, e.g. 09:00,10:00,11:00",
+            "in": "query",
+            "name": "slots",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Comma-separated time slots, e.g. 09:00,10:00,11:00",
+              "title": "Slots"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Set Availability Api Provider Availability Post",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Set Availability",
+        "tags": [
+          "provider:availability"
+        ]
+      }
+    },
     "/api/provider/kyc/documents": {
       "post": {
         "description": "Upload a KYC document. The provider is identified by their auth token.\n\nAllowed doc_types: ine, rfc_constancia, license, insurance, bank_statement\nAllowed formats: PDF, PNG, JPG",

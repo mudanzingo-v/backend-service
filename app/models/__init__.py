@@ -338,9 +338,36 @@ class AuditLog(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime, default=_now, nullable=False, index=True)
 
 
+# =============================================================================
+# ProviderAvailability (scheduling)
+# =============================================================================
+class ProviderAvailability(Base):
+    """Provider availability for a specific date."""
+
+    __tablename__ = "provider_availability"
+    __table_args__ = (
+        UniqueConstraint("provider_id", "date", name="uq_provider_date"),
+    )
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=_uuid)
+    provider_id: Mapped[str] = mapped_column(
+        String(128), ForeignKey("providers.id", ondelete="CASCADE"), index=True
+    )
+    date: Mapped[str] = mapped_column(String(10), nullable=False)  # YYYY-MM-DD
+    available: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+    # Time slots as JSON array: ["09:00", "10:00", "11:00", ...]
+    slots: Mapped[list | None] = mapped_column(JSONB, nullable=True)
+
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=_now, nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime, default=_now, onupdate=_now, nullable=False
+    )
+
+
 __all__ = [
     "AuditLog",
     "Auction",
+    "ProviderAvailability",
     "CheckoutSession",
     "InventoryCategory",
     "InventoryItem",
