@@ -412,16 +412,9 @@ async def select_auction(
         selected.cash_on_delivery_provider = breakdown.cash_on_delivery_provider
         selected.cash_on_delivery_mobbit = breakdown.cash_on_delivery_mobbit
 
-    # Amount in cents per Stripe/Conekta convention.
-    amount_cents = int(
-        (Decimal(selected.total) * 100).quantize(Decimal("1"))
-    ) if not cash_on_delivery else int(
-        (
-            Decimal(selected.cash_on_delivery_mobbit or 0)
-            + Decimal(selected.cash_on_delivery_provider or 0)
-        )
-        * 100
-    )
+    # 5% deposit (Mobbit fee) — the provider collects the remaining 95% in person.
+    deposit = (Decimal(selected.total) * Decimal("0.05")).quantize(Decimal("0.01"))
+    amount_cents = int((deposit * 100).quantize(Decimal("1")))
 
     payment_method = getattr(body, "payment_method", "card")
 
@@ -454,12 +447,9 @@ async def select_auction(
         payment = Payment(
             quotation_id=quotation.id,
             auction_id=selected.id,
-            type="STRIPE",
+            type="DEPOSIT",
             state=STATE_PENDING,
-            amount=Decimal(selected.total) if not cash_on_delivery else (
-                Decimal(selected.cash_on_delivery_mobbit or 0)
-                + Decimal(selected.cash_on_delivery_provider or 0)
-            ),
+            amount=deposit,
             currency="MXN",
             stripe_checkout_session_id=session.stripe_session_id,
         )
@@ -479,6 +469,8 @@ async def select_auction(
             "currency": session.currency,
             "payment_id": payment.id,
             "payment_method": "card",
+            "deposit": float(deposit),
+            "deposit_type": "5%_mobbit_fee",
         }
 
         # ---- Conekta HostedPayment (SPEI / OXXO) ----
@@ -502,12 +494,9 @@ async def select_auction(
         payment = Payment(
         quotation_id=quotation.id,
         auction_id=selected.id,
-        type="CONEKTA",
+        type="DEPOSIT",
         state=STATE_PENDING,
-        amount=Decimal(selected.total) if not cash_on_delivery else (
-            Decimal(selected.cash_on_delivery_mobbit or 0)
-            + Decimal(selected.cash_on_delivery_provider or 0)
-        ),
+        amount=deposit,
         currency="MXN",
         conekta_order_id=conekta_order.get("id"),
         conekta_payment_method=payment_method,
@@ -524,4 +513,6 @@ async def select_auction(
         "payment_method": payment_method,
         "amount_total": amount_cents,
         "currency": "MXN",
+        "deposit": float(deposit),
+        "deposit_type": "5%_mobbit_fee",
         }

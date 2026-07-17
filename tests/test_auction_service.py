@@ -856,7 +856,7 @@ async def test_select_auction_creates_checkout_session_row(
         customer_email: str | None = None,
         metadata: dict[str, str] | None = None,
     ) -> dict:
-        assert amount_cents == 12789, f"expected 12789 cents (127.89 MXN); got {amount_cents}"
+        assert amount_cents == 639, f"expected 12789 cents (127.89 MXN); got {amount_cents}"
         assert currency == "mxn", f"expected currency='mxn'; got {currency!r}"
         assert metadata is not None
         assert metadata.get("auction_id") == a.id
@@ -882,7 +882,7 @@ async def test_select_auction_creates_checkout_session_row(
     s = sessions[0]
     assert s.stripe_session_id == fake_session_id
     assert s.url == fake_url
-    assert s.amount_total == 12789
+    assert s.amount_total == 639
     assert s.currency == "mxn"
     assert s.status == "open"
     assert s.payment_status == "unpaid"
@@ -972,7 +972,7 @@ async def test_select_auction_creates_stripe_payment(
     payments = (await db_session.execute(stmt)).scalars().all()
     assert len(payments) == 1
     payment = payments[0]
-    assert payment.type == "STRIPE"
+    assert payment.type == "DEPOSIT"
 
 
 async def test_payment_model_has_no_mp_columns() -> None:

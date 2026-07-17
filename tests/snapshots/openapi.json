@@ -58,6 +58,71 @@
         "title": "AuctionAdminAssign",
         "type": "object"
       },
+      "AuctionCreate": {
+        "additionalProperties": false,
+        "description": "Provider submits an offer (POST /quotation/{id}/auction).",
+        "properties": {
+          "cash_on_delivery": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cash On Delivery"
+          },
+          "id_truck": {
+            "title": "Id Truck",
+            "type": "string"
+          },
+          "people": {
+            "title": "People",
+            "type": "string"
+          },
+          "price_load": {
+            "description": "Total price of the load (as string, like the original)",
+            "title": "Price Load",
+            "type": "string"
+          },
+          "products": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/AuctionItemObject"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Products"
+          },
+          "services": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/AuctionItemObject"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Services"
+          }
+        },
+        "required": [
+          "price_load",
+          "people",
+          "id_truck"
+        ],
+        "title": "AuctionCreate",
+        "type": "object"
+      },
       "AuctionItemObject": {
         "additionalProperties": false,
         "description": "Original Lambda shape: { id: str, offer: str }.",
@@ -8171,6 +8236,113 @@
         "summary": "Get my provider profile",
         "tags": [
           "provider:profile"
+        ]
+      }
+    },
+    "/api/provider/quotation": {
+      "get": {
+        "description": "List quotations in BIDDING state. Each provider sees basic data.",
+        "operationId": "list_quotations_for_bidding_api_provider_quotation_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 50,
+              "maximum": 200,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "List quotations available for bidding (provider)",
+        "tags": [
+          "provider:quotations"
+        ]
+      }
+    },
+    "/api/provider/quotation/{quotation_id}/bid": {
+      "post": {
+        "description": "Provider submits their price + notes for a quotation.",
+        "operationId": "submit_bid_api_provider_quotation__quotation_id__bid_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "quotation_id",
+            "required": true,
+            "schema": {
+              "title": "Quotation Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AuctionCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuctionRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Submit a bid for a quotation (provider)",
+        "tags": [
+          "provider:quotations"
         ]
       }
     },
