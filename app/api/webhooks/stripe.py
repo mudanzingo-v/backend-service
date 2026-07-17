@@ -50,6 +50,9 @@ from app.models import Auction, CheckoutSession, Payment, Quotation
 from app.services import invoice as invoice_svc
 from app.services import refund as refund_svc
 from app.services.quotation import transition_quotation
+from app.services.payment_states import PAY_PAID, PAY_FAILED
+from app.services.auction import STATE_SELECTED, STATE_ACCEPTED
+from app.services.quotation import ST_BIDDING
 
 log = get_logger(__name__)
 
@@ -183,19 +186,19 @@ async def _mark_session_and_payment_paid(
         )
         return False
 
-    if payment.state == "PAID":
+    if payment.state == PAY_PAID:
         log.info(
             "stripe.webhook.payment_already_paid",
             extra={"event_id": event_id, "payment_id": payment.id},
         )
         return False
 
-    payment.state = "PAID"
+    payment.state = PAY_PAID
     payment.stripe_payment_status = "succeeded"
 
     auction = await db.get(Auction, session.auction_id)
-    if auction is not None and auction.state == "SELECTED":
-        auction.state = "ACCEPTED"
+    if auction is not None and auction.state == STATE_SELECTED:
+        auction.state = STATE_ACCEPTED
         log.info(
             "stripe.webhook.auction_accepted",
             extra={"event_id": event_id, "auction_id": auction.id},
@@ -215,7 +218,7 @@ async def _mark_session_and_payment_paid(
             )
         # Transition quotation from BIDDING to AWARDED
         quotation = await db.get(Quotation, auction.quotation_id)
-        if quotation and quotation.state == "BIDDING":
+        if quotation and quotation.state == ST_BIDDING:
             await transition_quotation(db, quotation.id, "AWARDED")
     return True
 
@@ -276,8 +279,8 @@ async def _on_payment_failed(db: AsyncSession, event: Any) -> None:
 
     session.last_event_id = event.id
     payment = await _lookup_payment_for_session(db, stripe_session_id)
-    if payment is not None and payment.state != "FAILED":
-        payment.state = "FAILED"
+    if payment is not None and payment.state != PAY_FAILED:
+        payment.state = PAY_FAILED
         payment.stripe_payment_status = "failed"
         log.info(
             "stripe.webhook.payment_failed",

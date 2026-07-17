@@ -10,6 +10,7 @@ from app.core.exceptions import ConflictError, NotFoundError, ValidationError
 from app.core.logging import get_logger
 from app.models import Payment
 from app.services import stripe
+from app.services.payment_states import PAY_PAID, PAY_REFUNDED, PAY_PARTIAL_REFUNDED
 
 log = get_logger(__name__)
 
@@ -30,7 +31,7 @@ async def refund_payment(
     if payment is None:
         raise NotFoundError(f"Payment {payment_id} not found")
 
-    if payment.state != "PAID":
+    if payment.state != PAY_PAID:
         raise ConflictError(
             f"Cannot refund payment in state '{payment.state}'. Must be PAID."
         )
@@ -47,9 +48,9 @@ async def refund_payment(
 
     # Determine new state
     if amount_cents is not None:
-        payment.state = "PARTIAL_REFUNDED"
+        payment.state = PAY_PARTIAL_REFUNDED
     else:
-        payment.state = "REFUNDED"
+        payment.state = PAY_REFUNDED
 
     payment.raw_payload = result  # type: ignore[assignment]
     await db.commit()
@@ -87,9 +88,9 @@ async def process_refund_webhook(
         return None
 
     if refund_status == "succeeded":
-        payment.state = "REFUNDED"
+        payment.state = PAY_REFUNDED
     elif refund_status == "pending":
-        payment.state = "REFUNDED"  # Treat pending as eventual refund
+        payment.state = PAY_REFUNDED  # Treat pending as eventual refund
     else:
         log.info(
             "refund.webhook.unexpected_status",

@@ -29,10 +29,9 @@ WEBHOOK_PATH = "/payments/conekta"
 router = APIRouter(prefix="/webhooks", tags=["webhooks"])
 
 # State constants matching auction.py
-STATE_SELECTED = "SELECTED"
-STATE_ACCEPTED = "ACCEPTED"
-STATE_PAID = "PAID"
-STATE_EXPIRED = "EXPIRED"
+from app.services.payment_states import PAY_PAID, PAY_EXPIRED
+from app.services.auction import STATE_SELECTED, STATE_ACCEPTED
+from app.services.quotation import ST_BIDDING
 
 
 @router.post(WEBHOOK_PATH)
@@ -68,9 +67,9 @@ async def conekta_webhook(
             return {"received": True, "note": "payment not found"}
 
         if event_type == "order.paid":
-            payment.state = STATE_PAID
+            payment.state = PAY_PAID
         elif event_type == "order.expired":
-            payment.state = STATE_EXPIRED
+            payment.state = PAY_EXPIRED
 
         payment.raw_payload = payload
 
@@ -98,7 +97,7 @@ async def conekta_webhook(
                     )
                 # Transition quotation from BIDDING to AWARDED
                 quotation = await db.get(Quotation, auction.quotation_id)
-                if quotation and quotation.state == "BIDDING":
+                if quotation and quotation.state == ST_BIDDING:
                     await transition_quotation(db, quotation.id, "AWARDED")
 
         await db.commit()
