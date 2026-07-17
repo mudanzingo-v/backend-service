@@ -18,7 +18,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.database import get_db
 from app.core.exceptions import NotFoundError
 from app.core.logging import get_logger
-from app.models import Auction, Payment
+from app.models import Auction, Payment, Quotation
 from app.services.conekta import process_webhook_event
 
 import logging
@@ -85,6 +85,11 @@ async def conekta_webhook(
                     "conekta.webhook.auction_accepted",
                     extra={"auction_id": auction.id, "order_id": order_id},
                 )
+                # Transition quotation from BIDDING to AWARDED
+                quotation = await db.get(Quotation, auction.quotation_id)
+                if quotation and quotation.state == "BIDDING":
+                    from app.services.quotation import transition_quotation
+                    await transition_quotation(db, quotation.id, "AWARDED")
 
         await db.commit()
         log.info(

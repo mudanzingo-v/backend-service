@@ -46,9 +46,10 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.config import settings
 from app.core.database import get_db
 from app.core.logging import get_logger
-from app.models import Auction, CheckoutSession, Payment
+from app.models import Auction, CheckoutSession, Payment, Quotation
 from app.services import invoice as invoice_svc
 from app.services import refund as refund_svc
+from app.services.quotation import transition_quotation
 
 log = get_logger(__name__)
 
@@ -199,6 +200,10 @@ async def _mark_session_and_payment_paid(
             "stripe.webhook.auction_accepted",
             extra={"event_id": event_id, "auction_id": auction.id},
         )
+        # Transition quotation from BIDDING to AWARDED
+        quotation = await db.get(Quotation, auction.quotation_id)
+        if quotation and quotation.state == "BIDDING":
+            await transition_quotation(db, quotation.id, "AWARDED")
     return True
 
 
