@@ -200,6 +200,19 @@ async def _mark_session_and_payment_paid(
             "stripe.webhook.auction_accepted",
             extra={"event_id": event_id, "auction_id": auction.id},
         )
+        # Reject all other PENDING auctions for this quotation
+        stmt = select(Auction).where(
+            Auction.quotation_id == auction.quotation_id,
+            Auction.state == "PENDING",
+            Auction.id != auction.id,
+        )
+        other_auctions = (await db.execute(stmt)).scalars().all()
+        for other in other_auctions:
+            other.state = "REJECTED"
+            log.info(
+                "stripe.webhook.other_auction_rejected",
+                extra={"auction_id": other.id, "quotation_id": auction.quotation_id},
+            )
         # Transition quotation from BIDDING to AWARDED
         quotation = await db.get(Quotation, auction.quotation_id)
         if quotation and quotation.state == "BIDDING":

@@ -76,7 +76,7 @@ async def conekta_webhook(
 
         payment.raw_payload = payload
 
-        # Transition auction SELECTED → ACCEPTED on successful payment
+                # Transition auction SELECTED → ACCEPTED on successful payment
         if event_type == "order.paid" and payment.auction_id:
             auction = await db.get(Auction, payment.auction_id)
             if auction and auction.state == STATE_SELECTED:
@@ -85,10 +85,22 @@ async def conekta_webhook(
                     "conekta.webhook.auction_accepted",
                     extra={"auction_id": auction.id, "order_id": order_id},
                 )
+                # Reject all other PENDING auctions for this quotation
+                stmt = select(Auction).where(
+                    Auction.quotation_id == auction.quotation_id,
+                    Auction.state == "PENDING",
+                    Auction.id != auction.id,
+                )
+                other_auctions = (await db.execute(stmt)).scalars().all()
+                for other in other_auctions:
+                    other.state = "REJECTED"
+                    log.info(
+                        "conekta.webhook.other_auction_rejected",
+                        extra={"auction_id": other.id, "quotation_id": auction.quotation_id},
+                    )
                 # Transition quotation from BIDDING to AWARDED
                 quotation = await db.get(Quotation, auction.quotation_id)
                 if quotation and quotation.state == "BIDDING":
-                    from app.services.quotation import transition_quotation
                     await transition_quotation(db, quotation.id, "AWARDED")
 
         await db.commit()
