@@ -52,6 +52,39 @@ ALL_STATES = {
     STATE_DECLINED, STATE_ACCEPTED, STATE_PAID,
 }
 
+# Explicit transition map for Auction state machine
+AUCTION_TRANSITIONS = {
+    STATE_PENDING: {STATE_SELECTED, STATE_REJECTED, STATE_DECLINED},
+    STATE_SELECTED: {STATE_ACCEPTED},
+    STATE_ACCEPTED: set(),
+    STATE_REJECTED: set(),
+    STATE_DECLINED: set(),
+    STATE_PAID: set(),
+}
+
+
+def validate_auction_transition(from_state: str, to_state: str) -> None:
+    """Raise ValidationError if the auction state transition is not allowed."""
+    allowed = AUCTION_TRANSITIONS.get(from_state, set())
+    if to_state not in allowed:
+        raise ValidationError(
+            f"Cannot transition auction from '{from_state}' to '{to_state}'. "
+            f"Allowed: {', '.join(sorted(allowed)) or '(terminal)'}"
+        )
+
+
+async def transition_auction(
+    db: AsyncSession, auction: Auction, to_state: str
+) -> Auction:
+    """Validate and apply an auction state transition."""
+    validate_auction_transition(auction.state, to_state)
+    auction.state = to_state
+    await db.commit()
+    await db.refresh(auction)
+    return auction
+
+
+
 
 # =============================================================================
 # Existing flows (kept for compatibility)
