@@ -401,7 +401,7 @@ async def test_publish_quotation_raises_validation_error_from_terminal_state(
         await publish_quotation(db_session, q.id)
 
     msg = str(exc_info.value)
-    assert "Cannot publish" in msg
+    assert "Cannot transition" in msg
     assert ST_CANCELLED in msg
     # State unchanged.
     refetched = await get_quotation(db_session, q.id)
@@ -468,7 +468,7 @@ async def test_cancel_quotation_raises_validation_error_from_terminal_state(
         await cancel_quotation(db_session, q.id)
 
     msg = str(exc_info.value)
-    assert "Cannot cancel" in msg
+    assert "Cannot transition" in msg
     assert "COMPLETED" in msg
     # State unchanged.
     refetched = await get_quotation(db_session, q.id)

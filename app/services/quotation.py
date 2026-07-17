@@ -43,6 +43,29 @@ ALL_STATES = {
     ST_DRAFT, ST_QUOTED, ST_BIDDING, ST_AWARDED,
     ST_IN_PROGRESS, ST_COMPLETED, ST_CANCELLED, ST_REJECTED, ST_FAILED,
 }
+    
+# Explicit transition map (like KYC's _KYC_TRANSITIONS)
+QUOTATION_TRANSITIONS = {
+    ST_DRAFT: {ST_QUOTED, ST_BIDDING, ST_CANCELLED},
+    ST_QUOTED: {ST_BIDDING, ST_CANCELLED},
+    ST_BIDDING: {ST_AWARDED, ST_CANCELLED},
+    ST_AWARDED: {ST_IN_PROGRESS, ST_COMPLETED, ST_CANCELLED},
+    ST_IN_PROGRESS: {ST_COMPLETED, ST_FAILED, ST_CANCELLED},
+    ST_COMPLETED: set(),
+    ST_CANCELLED: set(),
+    ST_REJECTED: set(),
+    ST_FAILED: set(),
+}
+    
+    
+def validate_transition(from_state: str, to_state: str) -> None:
+    """Raise ValidationError if the transition is not allowed."""
+    allowed = QUOTATION_TRANSITIONS.get(from_state, set())
+    if to_state not in allowed:
+            raise ValidationError(
+            f"Cannot transition quotation from '{from_state}' to '{to_state}'. "
+            f"Allowed: {', '.join(sorted(allowed)) or '(terminal)'}"
+)
 
 # Minimum fields a quotation needs before it can be published (DRAFT → QUOTED).
 REQUIRED_FOR_PUBLISH = (
@@ -145,30 +168,11 @@ async def list_auctions_for_quotation(
 # State machine operations
 # =============================================================================
 async def publish_quotation(db: AsyncSession, quotation_id: str) -> Quotation:
-    """
-    Transition a quotation from DRAFT to QUOTED.
-
-    The quotation becomes visible to providers after this call. Validates
-    that the minimum required fields are populated. Idempotent: if the
-    quotation is already in a later state (QUOTED/BIDDING/...), returns it
-    unchanged.
-
-    Raises:
-        NotFoundError — quotation doesn't exist (or is synthetic)
-        ValidationError — required fields are missing
-    """
+    """Transition DRAFT → QUOTED. Idempotent if already QUOTED."""
     q = await get_quotation(db, quotation_id)
-    if q.state in (ST_BIDDING, ST_AWARDED, ST_IN_PROGRESS, ST_COMPLETED):
-        # Already past publish — leave it as is
-        return q
-    if q.state in (ST_CANCELLED, ST_REJECTED, ST_FAILED):
-        raise ValidationError(
-            f"Cannot publish a quotation in terminal state '{q.state}'"
-        )
     if q.state == ST_QUOTED:
-        # Already published — leave it as is (idempotent)
-        return q
-    # State is DRAFT (or NULL legacy) — validate minimum fields, then publish
+        return q  # idempotent
+    validate_transition(q.state, ST_QUOTED)
     missing = [f for f in REQUIRED_FOR_PUBLISH if not getattr(q, f, None)]
     if missing:
         raise ValidationError(
@@ -178,14 +182,25 @@ async def publish_quotation(db: AsyncSession, quotation_id: str) -> Quotation:
     await db.commit()
     await db.refresh(q)
     return q
-
-
+    
+    
 async def cancel_quotation(db: AsyncSession, quotation_id: str) -> Quotation:
     """Transition to CANCELLED from any non-terminal state."""
     q = await get_quotation(db, quotation_id)
-    if q.state in (ST_COMPLETED, ST_CANCELLED, ST_REJECTED, ST_FAILED):
-        raise ValidationError(f"Cannot cancel a quotation in state '{q.state}'")
+    validate_transition(q.state, ST_CANCELLED)
     q.state = ST_CANCELLED
+    await db.commit()
+    await db.refresh(q)
+    return q
+    
+    
+async def transition_quotation(
+    db: AsyncSession, quotation_id: str, to_state: str
+) -> Quotation:
+    """Generic state transition for the quotation state machine."""
+    q = await get_quotation(db, quotation_id)
+    validate_transition(q.state, to_state)
+    q.state = to_state
     await db.commit()
     await db.refresh(q)
     return q
