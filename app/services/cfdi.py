@@ -17,7 +17,6 @@ from datetime import datetime
 from decimal import Decimal
 from pathlib import Path
 
-from app.config import settings
 from app.core.logging import get_logger
 
 log = get_logger(__name__)

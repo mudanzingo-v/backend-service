@@ -1,7 +1,7 @@
 """
 Admin endpoints: Invoice management (CFDI).
 """
-from fastapi import APIRouter, Depends, Query, Response, status
+from fastapi import APIRouter, Depends, Query, Response
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 

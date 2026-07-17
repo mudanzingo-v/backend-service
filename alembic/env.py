@@ -6,15 +6,16 @@ Uses `DATABASE_URL` from env (or `.env`) so we don't have to hardcode it.
 import asyncio
 from logging.config import fileConfig
 
-from alembic import context
 from sqlalchemy import pool
 from sqlalchemy.engine import Connection
 from sqlalchemy.ext.asyncio import async_engine_from_config
 
-from app.config import settings
-from app.core.database import Base
+from alembic import context
+
 # Import all models so Base.metadata is populated
 from app import models  # noqa: F401
+from app.config import settings
+from app.core.database import Base
 
 config = context.config
 config.set_main_option("sqlalchemy.url", settings.database_url)

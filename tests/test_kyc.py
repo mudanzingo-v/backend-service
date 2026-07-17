@@ -95,8 +95,9 @@ async def test_upload_document_multiple_allowed(
     )
 
     # All uploads succeeded — no error
-    from app.models import ProviderDocument
     from sqlalchemy import select
+
+    from app.models import ProviderDocument
     stmt = select(ProviderDocument).where(
         ProviderDocument.provider_id == seeded_provider.id
     )

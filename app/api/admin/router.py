@@ -3,7 +3,18 @@ Admin router aggregator.
 """
 from fastapi import APIRouter
 
-from app.api.admin import auctions, catalog, invoices, kyc, payments, providers, quotations, salers, search, stats
+from app.api.admin import (
+    auctions,
+    catalog,
+    invoices,
+    kyc,
+    payments,
+    providers,
+    quotations,
+    salers,
+    search,
+    stats,
+)
 
 admin_router = APIRouter(prefix="/api/admin")
 admin_router.include_router(quotations.router)

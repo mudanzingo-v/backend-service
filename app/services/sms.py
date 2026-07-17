@@ -12,8 +12,6 @@ Config via env vars:
 """
 from __future__ import annotations
 
-import logging
-
 from app.config import settings
 from app.core.logging import get_logger
 

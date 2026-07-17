@@ -1,7 +1,7 @@
 """Full-text search service for quotations using PostgreSQL tsvector."""
 from __future__ import annotations
 
-from sqlalchemy import func, or_, select, text
+from sqlalchemy import or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models import Quotation

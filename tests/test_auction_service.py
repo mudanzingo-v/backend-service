@@ -458,6 +458,7 @@ async def test_provider_decline_auction_from_selected_raises_conflict(
 ) -> None:
     """`provider_decline_auction` raises ConflictError when auction is not PENDING."""
     from sqlalchemy import update as sa_update
+
     from app.models import Auction as AuctionModel
 
     p, q = seeded_provider_and_quotation
@@ -646,6 +647,7 @@ async def test_select_auction_no_pending_raises_not_found(
 ) -> None:
     """`select_auction` raises NotFoundError when no PENDING auctions exist."""
     from sqlalchemy import update as sa_update
+
     from app.models import Auction as AuctionModel
     from app.schemas import AuctionSelectBody
     from app.services.auction import select_auction
@@ -772,6 +774,7 @@ async def test_provider_update_auction_wrong_state_raises_conflict(
 ) -> None:
     """`provider_update_auction` raises ConflictError when auction is not PENDING."""
     from sqlalchemy import update as sa_update
+
     from app.models import Auction as AuctionModel
     from app.schemas import AuctionProviderUpdate
 

@@ -14,12 +14,10 @@ from __future__ import annotations
 import pytest
 from jose import jwt
 
-from app.config import settings
-from app.core.exceptions import UnauthorizedError
-
 # Module under test
 import app.core.auth as auth_module
-
+from app.config import settings
+from app.core.exceptions import UnauthorizedError
 
 # =============================================================================
 # _decode_token — error paths
@@ -145,6 +143,7 @@ async def test_current_admin_no_creds_raises_unauthorized() -> None:
 async def test_current_user_with_valid_token_returns_auth_user() -> None:
     """`current_user` with a valid dev token returns an AuthUser."""
     from fastapi.security import HTTPAuthorizationCredentials
+
     from tests._jwt import make_dev_jwt
 
     token = make_dev_jwt(sub="test-sub", pool="rccm")
@@ -158,6 +157,7 @@ async def test_current_user_with_valid_token_returns_auth_user() -> None:
 async def test_current_provider_with_valid_token_returns_auth_user() -> None:
     """`current_provider` with a valid dev token returns an AuthUser with pool=providers."""
     from fastapi.security import HTTPAuthorizationCredentials
+
     from tests._jwt import make_dev_jwt
 
     token = make_dev_jwt(sub="dev-provider", pool="providers")
@@ -171,6 +171,7 @@ async def test_current_provider_with_valid_token_returns_auth_user() -> None:
 async def test_current_admin_with_valid_token_returns_auth_user() -> None:
     """`current_admin` with a valid dev token returns an AuthUser with pool=rccm."""
     from fastapi.security import HTTPAuthorizationCredentials
+
     from tests._jwt import make_dev_jwt
 
     token = make_dev_jwt(sub="admin-user", pool="rccm")

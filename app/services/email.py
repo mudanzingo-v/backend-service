@@ -17,7 +17,6 @@ from __future__ import annotations
 import smtplib
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
-from typing import Literal
 
 from app.config import settings
 from app.core.logging import get_logger

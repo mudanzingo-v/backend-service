@@ -8,7 +8,6 @@ Flow:
 """
 from __future__ import annotations
 
-from datetime import datetime
 from decimal import Decimal
 
 from sqlalchemy import select
@@ -18,7 +17,7 @@ from app.config import settings
 from app.core.exceptions import ConflictError, NotFoundError, ValidationError
 from app.core.logging import get_logger
 from app.models import Auction, Invoice, Payment, Provider, Quotation
-from app.schemas.cfdi import InvoiceCaptureBody, InvoiceRead
+from app.schemas.cfdi import InvoiceCaptureBody
 from app.services.cfdi import InvoiceData, get_cfdi_adapter
 
 log = get_logger(__name__)

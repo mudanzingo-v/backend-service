@@ -7,7 +7,7 @@ from decimal import Decimal
 import pytest
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.exceptions import ConflictError, NotFoundError, ValidationError
+from app.core.exceptions import ConflictError, ValidationError
 from app.models import Auction, Provider, Quotation
 from app.services import rating as rating_svc
 
@@ -91,7 +91,6 @@ async def test_get_provider_rating_summary(
     seeded_accepted_auction: Auction,
 ) -> None:
     """`get_provider_rating_summary` returns aggregate stats."""
-    from app.models import Auction as AuctionModel
     a1 = seeded_accepted_auction
     p_id = a1.provider_id
 

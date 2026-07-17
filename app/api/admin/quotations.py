@@ -202,8 +202,9 @@ async def assign_provider(
 
     # Fire-and-forget SMS notification (runs in background, never blocks the response)
     if p.phone:
-        from app.services.sms import send_provider_assignment_sms
         import asyncio
+
+        from app.services.sms import send_provider_assignment_sms
         asyncio.ensure_future(
 send_provider_assignment_sms(p.phone, p.name or "transportista")
         )

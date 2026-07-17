@@ -4,7 +4,6 @@ Reports service — operational metrics for the admin dashboard.
 from __future__ import annotations
 
 from datetime import datetime, timedelta
-from decimal import Decimal
 
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession

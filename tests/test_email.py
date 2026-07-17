@@ -5,8 +5,6 @@ from __future__ import annotations
 
 from unittest.mock import patch
 
-import pytest
-
 from app.services.email import send_email, send_verification_email
 
 

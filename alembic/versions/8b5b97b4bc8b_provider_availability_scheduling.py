@@ -5,17 +5,17 @@ Revises: 71aa4c438409
 Create Date: 2026-07-16 10:45:16.926467
 
 """
-from typing import Sequence, Union
+from collections.abc import Sequence
 
-from alembic import op
 import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
 
+from alembic import op
 
 revision: str = "8b5b97b4bc8b"
-down_revision: Union[str, None] = "71aa4c438409"
-branch_labels: Union[str, Sequence[str], None] = None
-depends_on: Union[str, Sequence[str], None] = None
+down_revision: str | None = "71aa4c438409"
+branch_labels: str | Sequence[str] | None = None
+depends_on: str | Sequence[str] | None = None
 
 
 def upgrade() -> None:

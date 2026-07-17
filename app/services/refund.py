@@ -8,7 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.exceptions import ConflictError, NotFoundError, ValidationError
 from app.core.logging import get_logger
-from app.models import Auction, Payment
+from app.models import Payment
 from app.services import stripe
 
 log = get_logger(__name__)

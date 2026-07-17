@@ -98,10 +98,15 @@ async def create_order(
             payment_methods=methods,
         )
 
-    from conekta import Configuration, OrdersApi
-    from conekta import OrderRequest, CheckoutRequest, Product
-    from conekta import OrderRequestCustomerInfo
-    from conekta import ApiClient
+    from conekta import (
+        ApiClient,
+        CheckoutRequest,
+        Configuration,
+        OrderRequest,
+        OrderRequestCustomerInfo,
+        OrdersApi,
+        Product,
+    )
 
     config = Configuration(access_token=settings.conekta_api_key)
     client = ApiClient(config)

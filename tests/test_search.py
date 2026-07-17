@@ -1,7 +1,6 @@
 """Search service tests."""
 from __future__ import annotations
 
-import pytest
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models import Quotation
@@ -52,7 +51,6 @@ async def test_search_quotations_by_id(
     db_session: AsyncSession,
 ) -> None:
     """Search finds quotations by partial ID match."""
-    import uuid
     q = Quotation(
         client_name="ID Test", client_phone="+52", client_email="id@test.com",
     )

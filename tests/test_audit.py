@@ -1,13 +1,10 @@
 """Audit service tests."""
 from __future__ import annotations
 
-import uuid
-
 import pytest
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.auth import AuthUser
-from app.models import AuditLog
 from app.services.audit import _compute_changes, log_action
 
 

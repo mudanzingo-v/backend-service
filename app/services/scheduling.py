@@ -1,7 +1,7 @@
 """Provider availability service."""
 from __future__ import annotations
 
-from datetime import date, datetime, timedelta
+from datetime import datetime
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -32,7 +32,7 @@ async def set_availability(
     try:
         datetime.strptime(target_date, "%Y-%m-%d")
     except ValueError:
-        raise ValidationError(f"Invalid date format '{target_date}'. Use YYYY-MM-DD.")
+        raise ValidationError(f"Invalid date format '{target_date}'. Use YYYY-MM-DD.") from None
 
     # Upsert
     stmt = select(ProviderAvailability).where(

@@ -12,7 +12,7 @@ import pytest
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.exceptions import ConflictError, NotFoundError, ValidationError
-from app.models import Auction, Invoice, Payment, Provider, Quotation
+from app.models import Auction, Payment, Provider, Quotation
 from app.schemas.cfdi import InvoiceCaptureBody
 from app.services import invoice as invoice_svc
 

@@ -3,7 +3,6 @@ from __future__ import annotations
 
 from decimal import Decimal
 
-import pytest
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models import Auction, Payment, Provider, Quotation

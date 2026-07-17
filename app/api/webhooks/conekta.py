@@ -13,16 +13,14 @@ Other events return 200 with ``{"received": true}`` (no-op).
 """
 from __future__ import annotations
 
+from fastapi import APIRouter, Depends, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
-from app.core.exceptions import NotFoundError
 from app.core.logging import get_logger
 from app.models import Auction, Payment, Quotation
 from app.services.conekta import process_webhook_event
-
-import logging
-from fastapi import APIRouter, Depends, Request
+from app.services.quotation import transition_quotation
 
 log = get_logger(__name__)
 

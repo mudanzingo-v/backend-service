@@ -14,11 +14,11 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.admin.router import admin_router
+from app.api.auth.provider import router as provider_auth_router
 from app.api.b2c.router import b2c_router
 from app.api.provider import provider_router
-from app.api.auth.provider import router as provider_auth_router
-from app.api.webhooks.stripe import router as stripe_webhook_router
 from app.api.webhooks.conekta import router as conekta_webhook_router
+from app.api.webhooks.stripe import router as stripe_webhook_router
 from app.config import settings
 from app.core.exceptions import register_exception_handlers
 from app.core.logging import get_logger, setup_logging

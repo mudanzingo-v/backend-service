@@ -32,12 +32,12 @@ import json
 import logging
 import os
 import sys
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from decimal import Decimal, InvalidOperation
 from typing import Any
 
-import boto3
 import asyncpg
+import boto3
 from botocore.config import Config
 
 # ---- Logging ----
@@ -155,7 +155,7 @@ def _parse_ts(s: str | None) -> datetime | None:
             return None
     # Normalise to naive UTC for Postgres TIMESTAMP
     if parsed.tzinfo is not None:
-        parsed = parsed.astimezone(timezone.utc).replace(tzinfo=None)
+        parsed = parsed.astimezone(UTC).replace(tzinfo=None)
     return parsed
 
 
@@ -475,7 +475,6 @@ async def migrate() -> None:
                     f"COALESCE(${len(cols)+1}::timestamp, NOW())",
                     f"COALESCE(${len(cols)+2}::timestamp, NOW())",
                 ]
-            all_cols = cols + extra_cols
             all_sql = ",".join(cols) + ("," + ",".join(extra_cols) if extra_cols else "")
             placeholders_inner = (
                 ",".join(f"${i+1}" for i in range(len(cols)))
@@ -543,7 +542,7 @@ async def migrate() -> None:
                         (id, name, description, active, created_at, updated_at)
                     VALUES ($1, $2, NULL, FALSE, NOW(), NOW())
                     ON CONFLICT (id) DO NOTHING
-                """, cat_id, f"(synthetic — referenced by items but missing in DDB)")
+                """, cat_id, "(synthetic — referenced by items but missing in DDB)")
 
         await bulk("inventory_items",
                    ["id", "name", "url_image", "length", "width", "height", "weight",

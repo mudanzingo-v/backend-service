@@ -10,11 +10,9 @@ No HTTP — tests the service layer directly.
 from __future__ import annotations
 
 import pytest
-from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.exceptions import ConflictError, UnauthorizedError, ValidationError
-from app.models import Provider
 from app.services.provider_auth import (
     login_provider,
     register_provider,

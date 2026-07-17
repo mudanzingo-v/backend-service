@@ -7,16 +7,16 @@ Create Date: 2026-06-17
 Phase 2.3 / Auction flow: add the admin-suggested price and the
 provider's note to the auction table.
 """
-from typing import Sequence, Union
+from collections.abc import Sequence
 
 import sqlalchemy as sa
+
 from alembic import op
 
-
 revision: str = "0003_auction_admin_budget"
-down_revision: Union[str, None] = "0002_state_machine_v2"
-branch_labels: Union[str, Sequence[str], None] = None
-depends_on: Union[str, Sequence[str], None] = None
+down_revision: str | None = "0002_state_machine_v2"
+branch_labels: str | Sequence[str] | None = None
+depends_on: str | Sequence[str] | None = None
 
 
 def upgrade() -> None:
